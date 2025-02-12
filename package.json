@@ -20,7 +20,7 @@
 		"games",
 		"steam"
 	],
-	"author": "Jonas Dellinger <jonas@dellinger.dev>",
+	"author": "Jonas Dellinger <jonas@dellinger.dev>, Chris Alves <contact@chis.dev>",
 	"license": "BSD-3-Clause",
 	"bugs": {
 		"url": "https://github.com/davocarli/deck-roulette/issues"
