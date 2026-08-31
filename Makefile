@@ -47,8 +47,9 @@ copy-ssh-key: ## Copy public ssh key to steamdeck
 deploy-steamdeck: ## Deploy plugin build to steamdeck
 	@echo "+ $@"
 	@ssh $(DECK_USER)@$(DECK_HOST) -p $(DECK_PORT) -i $(DECK_KEY) \
- 		'chmod -v 755 $(DECK_HOME)/homebrew/plugins/ && mkdir -p $(DECK_HOME)/homebrew/plugins/$(PLUGIN_FOLDER)'
-	@rsync -azp --delete --progress -e "ssh -p $(DECK_PORT) -i $(DECK_KEY)" \
+		'sudo -n mkdir -p $(DECK_HOME)/homebrew/plugins/$(PLUGIN_FOLDER)'
+	@rsync -azp --delete --delete-excluded --progress -e "ssh -p $(DECK_PORT) -i $(DECK_KEY)" \
+		--rsync-path="sudo -n rsync" \
 		--chmod=Du=rwx,Dg=rx,Do=rx,Fu=rwx,Fg=rx,Fo=rx \
 		--exclude='.git/' \
 		--exclude='.github/' \
@@ -56,19 +57,27 @@ deploy-steamdeck: ## Deploy plugin build to steamdeck
 		--exclude='node_modules/' \
 		--exclude='.pnpm-store/' \
 		--exclude='src/' \
+		--exclude='screenshots/' \
+		--exclude='pnpm-lock.yaml' \
+		--exclude='rollup.config.js' \
+		--exclude='tsconfig.json' \
+		--exclude='*.pyi' \
+		--exclude='*.map' \
 		--exclude='*.log' \
-		--exclude='.gitignore' . \
-		--exclude='.idea' . \
-		--exclude='.env' . \
-		--exclude='Makefile' . \
+		--exclude='__pycache__/' \
+		--exclude='*.pyc' \
+		--exclude='.gitignore' \
+		--exclude='.idea/' \
+		--exclude='.env' \
+		--exclude='Makefile' \
  		./ $(DECK_USER)@$(DECK_HOST):$(DECK_HOME)/homebrew/plugins/$(PLUGIN_FOLDER)/
 	@ssh $(DECK_USER)@$(DECK_HOST) -p $(DECK_PORT) -i $(DECK_KEY) \
- 		'chmod -v 755 $(DECK_HOME)/homebrew/plugins/'
+		'sudo -n chown -R root:root $(DECK_HOME)/homebrew/plugins/$(PLUGIN_FOLDER)'
 
 restart-decky: ## Restart Decky on remote steamdeck
 	@echo "+ $@"
-	@ssh -t $(DECK_USER)@$(DECK_HOST) -p $(DECK_PORT) -i $(DECK_KEY) \
- 		'sudo systemctl restart plugin_loader.service'
+	@ssh $(DECK_USER)@$(DECK_HOST) -p $(DECK_PORT) -i $(DECK_KEY) \
+		'sudo -n systemctl restart plugin_loader.service'
 	@echo -e '\033[0;32m+ all is good, restarting Decky...\033[0m'
 
 deploy: ## Deploy code to steamdeck and restart Decky
