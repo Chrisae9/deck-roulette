@@ -22,7 +22,7 @@ type QuickAccessProps = {
 export const QuickAccess = ({ store }: QuickAccessProps) => {
 	const { collectionStore }: { collectionStore?: CollectionStore } = window as any
 	const { settings, loaded, saving, error } = useSettingsStore(store)
-	const [showOtherLists, setShowOtherLists] = useState(false)
+	const [browsingOtherLists, setBrowsingOtherLists] = useState(false)
 	const collections = selectableCollections(collectionStore)
 	const availableSources = availableRouletteSources(
 		collectionStore,
@@ -41,6 +41,38 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 		Navigation.Navigate(`${SETTINGS_ROUTE}/shortcuts`)
 		Navigation.CloseSideMenus()
 	}
+	const openRandomGame = (appIds: number[]) => {
+		setBrowsingOtherLists(false)
+		navigateToRandomGame(appIds)
+	}
+
+	if (browsingOtherLists) {
+		return (
+			<div>
+				<PanelSection title="Other Game Lists">
+					<PanelSectionRow>
+						<ButtonItem
+							layout="below"
+							onClick={() => setBrowsingOtherLists(false)}
+						>
+							← Back to Shortcuts
+						</ButtonItem>
+					</PanelSectionRow>
+					{otherSources.map((source) => (
+						<PanelSectionRow key={source.id}>
+							<ButtonItem
+								layout="below"
+								disabled={source.appIds.length === 0}
+								onClick={() => openRandomGame(source.appIds)}
+							>
+								{source.label} ({source.appIds.length})
+							</ButtonItem>
+						</PanelSectionRow>
+					))}
+				</PanelSection>
+			</div>
+		)
+	}
 
 	return (
 		<div>
@@ -55,7 +87,7 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 									? "No eligible games in this list."
 									: undefined
 							}
-							onClick={() => navigateToRandomGame(source.appIds)}
+							onClick={() => openRandomGame(source.appIds)}
 						>
 							{source.label} ({source.appIds.length})
 						</ButtonItem>
@@ -66,25 +98,13 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 						<ButtonItem
 							layout="below"
 							disabled={!loaded}
-							onClick={() => setShowOtherLists((visible) => !visible)}
+							description={`${otherSources.length} unpinned lists`}
+							onClick={() => setBrowsingOtherLists(true)}
 						>
-							{showOtherLists ? "Hide Other Lists" : "Show Other Lists…"}
+							Browse Other Lists…
 						</ButtonItem>
 					</PanelSectionRow>
 				) : null}
-				{showOtherLists
-					? otherSources.map((source) => (
-							<PanelSectionRow key={source.id}>
-								<ButtonItem
-									layout="below"
-									disabled={source.appIds.length === 0}
-									onClick={() => navigateToRandomGame(source.appIds)}
-								>
-									{source.label} ({source.appIds.length})
-								</ButtonItem>
-							</PanelSectionRow>
-						))
-					: null}
 			</PanelSection>
 			<PanelSection title="Settings">
 				{error ? (
