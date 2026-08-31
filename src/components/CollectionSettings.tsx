@@ -1,24 +1,31 @@
 import {
 	ButtonItem,
+	ConfirmModal,
+	DialogButton,
+	Field,
 	PanelSection,
 	PanelSectionRow,
-	ReorderableEntry,
-	ReorderableList,
 	SidebarNavigation,
+	ShowModalResult,
 	ToggleField,
+	showModal,
 } from "@decky/ui"
-import { FaFilter, FaThumbtack } from "react-icons/fa"
+import { useState } from "react"
+import { FaArrowDown, FaArrowUp, FaFilter, FaThumbtack } from "react-icons/fa"
 
 import {
 	createDefaultSettings,
 	INSTALLED_SOURCE_ID,
+	moveItem,
 	MY_GAMES_SOURCE_ID,
 	setCollectionExcluded,
+	setPinnedSourceOrder,
 	setSourcePinned,
 } from "../collectionSettings"
 import {
 	availableRouletteSources,
-	resolvePinnedSources,
+	partitionSourcesByPinned,
+	RouletteSource,
 	selectableCollections,
 } from "../gamePools"
 import { SETTINGS_ROUTE } from "../routes"
@@ -35,73 +42,165 @@ const ErrorRow = ({ error }: { error?: string }) =>
 		</PanelSectionRow>
 	) : null
 
-const QuickAccessSettings = ({ store }: SettingsPageProps) => {
+type ShortcutOrderModalProps = {
+	closeModal: () => void
+	onSave: (sourceIds: string[]) => void
+	sources: RouletteSource[]
+}
+
+const ShortcutOrderModal = ({
+	closeModal,
+	onSave,
+	sources,
+}: ShortcutOrderModalProps) => {
+	const sourceById = new Map(sources.map((source) => [source.id, source]))
+	const [draftSourceIds, setDraftSourceIds] = useState(
+		sources.map((source) => source.id)
+	)
+
+	return (
+		<ConfirmModal
+			bAllowFullSize
+			strTitle="Change Shortcut Order"
+			strOKButtonText="Save Order"
+			strCancelButtonText="Cancel"
+			onCancel={closeModal}
+			onOK={() => {
+				onSave(draftSourceIds)
+				closeModal()
+			}}
+		>
+			<div style={{ marginBottom: "16px" }}>
+				Use the arrow buttons to arrange Quick Access. Save Order applies the
+				new order; Cancel leaves it unchanged.
+			</div>
+			{draftSourceIds.map((sourceId, index) => {
+				const source = sourceById.get(sourceId)
+				if (!source) return null
+
+				return (
+					<Field key={sourceId} label={`${index + 1}. ${source.label}`}>
+						<div style={{ display: "flex", gap: "8px" }}>
+							<DialogButton
+								disabled={index === 0}
+								onOKActionDescription={`Move ${source.label} up`}
+								onClick={() =>
+									setDraftSourceIds((sourceIds) =>
+										moveItem(sourceIds, index, index - 1)
+									)
+								}
+							>
+								<FaArrowUp />
+							</DialogButton>
+							<DialogButton
+								disabled={index === draftSourceIds.length - 1}
+								onOKActionDescription={`Move ${source.label} down`}
+								onClick={() =>
+									setDraftSourceIds((sourceIds) =>
+										moveItem(sourceIds, index, index + 1)
+									)
+								}
+							>
+								<FaArrowDown />
+							</DialogButton>
+						</div>
+					</Field>
+				)
+			})}
+		</ConfirmModal>
+	)
+}
+
+const ShortcutSettings = ({ store }: SettingsPageProps) => {
 	const { collectionStore }: { collectionStore?: CollectionStore } = window as any
 	const { settings, loaded, saving, error } = useSettingsStore(store)
 	const availableSources = availableRouletteSources(
 		collectionStore,
 		settings.excludedCollectionIds
 	)
-	const pinnedSources = resolvePinnedSources(
-		availableSources,
-		settings.pinnedSourceIds
-	)
-	const reorderEntries: ReorderableEntry<string>[] = pinnedSources.map(
-		(source, position) => ({
-			label: `${source.label} (${source.appIds.length})`,
-			data: source.id,
-			position,
-		})
-	)
+	const { pinnedSources, availableSources: availableShortcuts } =
+		partitionSourcesByPinned(
+			availableSources,
+			settings.pinnedSourceIds
+		)
 
-	const saveOrder = (entries: ReorderableEntry<string>[]) => {
-		void store.update((currentSettings) => ({
-			...currentSettings,
-			pinnedSourceIds: entries.flatMap((entry) =>
-				entry.data ? [entry.data] : []
-			),
-		}))
+	const openOrderModal = () => {
+		let modal: ShowModalResult
+		modal = showModal(
+			<ShortcutOrderModal
+				closeModal={() => modal.Close()}
+				sources={pinnedSources}
+				onSave={(sourceIds) =>
+					void store.update((currentSettings) =>
+						setPinnedSourceOrder(currentSettings, sourceIds)
+					)
+				}
+			/>
+		)
 	}
 
 	return (
 		<div>
-			<PanelSection title="Pinned Order">
+			<PanelSection title="Pinned Shortcuts">
 				<ErrorRow error={error} />
 				<PanelSectionRow>
-					<div>
-						Pinned pools appear in this order in Quick Access. Select the
-						list to begin reordering.
-					</div>
+					<div>These shortcuts appear in Decky Quick Access.</div>
 				</PanelSectionRow>
-				{reorderEntries.length > 0 ? (
-					<PanelSectionRow>
-						<ReorderableList
-							entries={reorderEntries}
-							disableReordering={!loaded || saving}
-							onSave={saveOrder}
-						/>
-					</PanelSectionRow>
+				{pinnedSources.length > 0 ? (
+					pinnedSources.map((source) => (
+						<PanelSectionRow key={source.id}>
+							<ToggleField
+								label={source.label}
+								checked
+								disabled={!loaded || saving}
+								onChange={(pinned) =>
+									void store.update((currentSettings) =>
+										setSourcePinned(currentSettings, source.id, pinned)
+									)
+								}
+							/>
+						</PanelSectionRow>
+					))
 				) : (
 					<PanelSectionRow>
-						<div>No game pools are pinned.</div>
+						<div>No shortcuts are pinned.</div>
 					</PanelSectionRow>
 				)}
+				<PanelSectionRow>
+					<ButtonItem
+						disabled={!loaded || saving || pinnedSources.length < 2}
+						description={
+							pinnedSources.length < 2
+								? "Pin at least two shortcuts to change their order."
+								: "Arrange shortcuts with explicit up and down controls."
+						}
+						onClick={openOrderModal}
+					>
+						Change Order…
+					</ButtonItem>
+				</PanelSectionRow>
 			</PanelSection>
-			<PanelSection title="Pin Game Pools">
-				{availableSources.map((source) => (
-					<PanelSectionRow key={source.id}>
-						<ToggleField
-							label={`${source.label} (${source.appIds.length})`}
-							checked={settings.pinnedSourceIds.includes(source.id)}
-							disabled={!loaded || saving}
-							onChange={(pinned) =>
-								void store.update((currentSettings) =>
-									setSourcePinned(currentSettings, source.id, pinned)
-								)
-							}
-						/>
+			<PanelSection title="Available Shortcuts">
+				{availableShortcuts.length > 0 ? (
+					availableShortcuts.map((source) => (
+						<PanelSectionRow key={source.id}>
+							<ToggleField
+								label={source.label}
+								checked={false}
+								disabled={!loaded || saving}
+								onChange={(pinned) =>
+									void store.update((currentSettings) =>
+										setSourcePinned(currentSettings, source.id, pinned)
+									)
+								}
+							/>
+						</PanelSectionRow>
+					))
+				) : (
+					<PanelSectionRow>
+						<div>Every shortcut is pinned.</div>
 					</PanelSectionRow>
-				))}
+				)}
 				<PanelSectionRow>
 					<ButtonItem
 						disabled={!loaded || saving}
@@ -113,7 +212,7 @@ const QuickAccessSettings = ({ store }: SettingsPageProps) => {
 							}))
 						}
 					>
-						Reset to Installed and My Games
+						Restore Default Shortcuts
 					</ButtonItem>
 				</PanelSectionRow>
 			</PanelSection>
@@ -142,20 +241,17 @@ const ExclusionSettings = ({ store }: SettingsPageProps) => {
 				<ErrorRow error={error} />
 				<PanelSectionRow>
 					<div>
-						Excluded collections are removed only from Installed and My
-						Games. Their direct roulette pools still work.
-					</div>
-				</PanelSectionRow>
-				<PanelSectionRow>
-					<div>
-						Installed: {installedCount} eligible · My Games: {myGamesCount}{" "}
-						eligible
+						Remove collections from Installed and My Games only. Direct
+						collection shortcuts still work.
+						<div style={{ opacity: 0.7, marginTop: "8px" }}>
+							Eligible: Installed {installedCount} · My Games {myGamesCount}
+						</div>
 					</div>
 				</PanelSectionRow>
 				{collections.map((collection) => (
 					<PanelSectionRow key={collection.id}>
 						<ToggleField
-							label={`${collection.displayName} (${collection.visibleApps.length})`}
+							label={collection.displayName}
 							checked={settings.excludedCollectionIds.includes(
 								collection.id
 							)}
@@ -198,9 +294,9 @@ export const CollectionSettings = ({ store }: SettingsPageProps) => (
 	<SidebarNavigation
 		pages={[
 			{
-				title: "Quick Access",
-				content: <QuickAccessSettings store={store} />,
-				route: `${SETTINGS_ROUTE}/quick-access`,
+				title: "Shortcuts",
+				content: <ShortcutSettings store={store} />,
+				route: `${SETTINGS_ROUTE}/shortcuts`,
 				icon: <FaThumbtack />,
 			},
 			{

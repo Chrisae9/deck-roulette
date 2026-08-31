@@ -102,3 +102,23 @@ export const resolvePinnedSources = (
 		return source ? [source] : []
 	})
 }
+
+export const partitionSourcesByPinned = (
+	availableSources: RouletteSource[],
+	pinnedSourceIds: string[]
+) => {
+	const pinnedSources = resolvePinnedSources(
+		availableSources,
+		pinnedSourceIds
+	)
+	const pinnedSourceIdSet = new Set(
+		pinnedSources.map((source) => source.id)
+	)
+
+	return {
+		pinnedSources,
+		availableSources: availableSources.filter(
+			(source) => !pinnedSourceIdSet.has(source.id)
+		),
+	}
+}

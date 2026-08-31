@@ -3,8 +3,10 @@ import { describe, expect, test } from "vitest"
 import {
 	createDefaultSettings,
 	INSTALLED_SOURCE_ID,
+	moveItem,
 	MY_GAMES_SOURCE_ID,
 	setCollectionExcluded,
+	setPinnedSourceOrder,
 	setSourcePinned,
 } from "./collectionSettings"
 
@@ -48,5 +50,30 @@ describe("collection settings", () => {
 
 		expect(excluded.pinnedSourceIds).toContain("collection:emulation")
 		expect(excluded.excludedCollectionIds).toEqual(["emulation"])
+	})
+
+	test("moves shortcuts without mutating the saved order", () => {
+		const original = ["installed", "favorites", "my-games"]
+
+		expect(moveItem(original, 2, 0)).toEqual([
+			"my-games",
+			"installed",
+			"favorites",
+		])
+		expect(original).toEqual(["installed", "favorites", "my-games"])
+		expect(moveItem(original, 0, -1)).toEqual(original)
+	})
+
+	test("saves a unique explicit shortcut order", () => {
+		const settings = setPinnedSourceOrder(createDefaultSettings(), [
+			"collection:favorites",
+			MY_GAMES_SOURCE_ID,
+			"collection:favorites",
+		])
+
+		expect(settings.pinnedSourceIds).toEqual([
+			"collection:favorites",
+			MY_GAMES_SOURCE_ID,
+		])
 	})
 })

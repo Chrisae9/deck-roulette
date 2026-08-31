@@ -42,7 +42,7 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 
 	const openGamePoolMenu = (event: MouseEvent) => {
 		showContextMenu(
-			<Menu label="All Game Pools">
+			<Menu label="Choose a Game List">
 				{availableSources.map((source) => (
 					<MenuItem
 						key={source.id}
@@ -59,7 +59,7 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 	}
 
 	const openSettings = () => {
-		Navigation.Navigate(`${SETTINGS_ROUTE}/quick-access`)
+		Navigation.Navigate(`${SETTINGS_ROUTE}/shortcuts`)
 		Navigation.CloseSideMenus()
 	}
 
@@ -73,7 +73,7 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 							disabled={!loaded || source.appIds.length === 0}
 							description={
 								loaded && source.appIds.length === 0
-									? "No eligible games in this pool."
+									? "No eligible games in this list."
 									: undefined
 							}
 							onClick={() => navigateToRandomGame(source.appIds)}
@@ -88,7 +88,7 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 						disabled={!loaded}
 						onClick={openGamePoolMenu}
 					>
-						All Game Pools…
+						Choose Another List…
 					</ButtonItem>
 				</PanelSectionRow>
 			</PanelSection>
@@ -105,7 +105,7 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 						description={`${pinnedSources.length} pinned · ${excludedCount} excluded`}
 						onClick={openSettings}
 					>
-						Organize Game Pools
+						Customize Shortcuts
 					</ButtonItem>
 				</PanelSectionRow>
 			</PanelSection>

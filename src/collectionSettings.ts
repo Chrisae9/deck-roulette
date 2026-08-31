@@ -41,3 +41,28 @@ export const setCollectionExcluded = (
 		excluded
 	),
 })
+
+export const moveItem = <T>(items: T[], fromIndex: number, toIndex: number) => {
+	if (
+		fromIndex < 0 ||
+		toIndex < 0 ||
+		fromIndex >= items.length ||
+		toIndex >= items.length ||
+		fromIndex === toIndex
+	) {
+		return [...items]
+	}
+
+	const reorderedItems = [...items]
+	const [item] = reorderedItems.splice(fromIndex, 1)
+	reorderedItems.splice(toIndex, 0, item)
+	return reorderedItems
+}
+
+export const setPinnedSourceOrder = (
+	settings: PluginSettings,
+	pinnedSourceIds: string[]
+): PluginSettings => ({
+	...settings,
+	pinnedSourceIds: Array.from(new Set(pinnedSourceIds)),
+})

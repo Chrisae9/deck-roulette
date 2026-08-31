@@ -4,6 +4,7 @@ import { INSTALLED_SOURCE_ID } from "./collectionSettings"
 import {
 	availableRouletteSources,
 	collectionSourceId,
+	partitionSourcesByPinned,
 	resolvePinnedSources,
 	selectableCollections,
 } from "./gamePools"
@@ -105,6 +106,29 @@ describe("roulette game pools", () => {
 				(source) => source.id
 			)
 		).toEqual([beta, alpha])
+	})
+
+	test("places every source in exactly one shortcut group", () => {
+		const sources = availableRouletteSources(
+			collectionStore([
+				collection("alpha", "Alpha", [10]),
+				collection("beta", "Beta", [20]),
+			]),
+			[]
+		)
+		const beta = collectionSourceId("beta")
+		const groups = partitionSourcesByPinned(sources, [
+			beta,
+			"collection:deleted",
+		])
+		const groupedIds = [
+			...groups.pinnedSources,
+			...groups.availableSources,
+		].map(({ id }) => id)
+
+		expect(groups.pinnedSources.map(({ id }) => id)).toEqual([beta])
+		expect(new Set(groupedIds).size).toBe(sources.length)
+		expect(groupedIds).toHaveLength(sources.length)
 	})
 
 	test("hides Steam pseudo-collections from configurable pools", () => {
