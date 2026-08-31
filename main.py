@@ -6,10 +6,13 @@ import decky
 
 
 DEFAULT_SETTINGS = {"excludedCollectionIds": []}
+SETTINGS_DIR = getattr(decky, "DECKY_SETTINGS_DIR", None)
+if SETTINGS_DIR is None:
+    SETTINGS_DIR = decky.DECKY_PLUGIN_SETTINGS_DIR
 
 
 class Plugin:
-    settings_path = Path(decky.DECKY_SETTINGS_DIR) / "settings.json"
+    settings_path = Path(SETTINGS_DIR) / "settings.json"
 
     def _validated_settings(self, settings: Any) -> dict[str, list[str]]:
         if not isinstance(settings, dict):
