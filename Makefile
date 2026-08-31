@@ -50,6 +50,7 @@ deploy-steamdeck: ## Deploy plugin build to steamdeck
 		'sudo -n mkdir -p $(DECK_HOME)/homebrew/plugins/$(PLUGIN_FOLDER)'
 	@rsync -azp --delete --delete-excluded --progress -e "ssh -p $(DECK_PORT) -i $(DECK_KEY)" \
 		--rsync-path="sudo -n rsync" \
+		--no-owner --no-group \
 		--chmod=Du=rwx,Dg=rx,Do=rx,Fu=rwx,Fg=rx,Fo=rx \
 		--exclude='.git/' \
 		--exclude='.github/' \
@@ -57,6 +58,7 @@ deploy-steamdeck: ## Deploy plugin build to steamdeck
 		--exclude='node_modules/' \
 		--exclude='.pnpm-store/' \
 		--exclude='src/' \
+		--exclude='tests/' \
 		--exclude='screenshots/' \
 		--exclude='pnpm-lock.yaml' \
 		--exclude='rollup.config.js' \
