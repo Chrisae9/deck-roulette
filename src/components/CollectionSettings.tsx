@@ -41,7 +41,6 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 	const { collectionStore }: { collectionStore?: CollectionStore } = window as any
 	const { settings, loaded, saving, error } = useSettingsStore(store)
 	const [reordering, setReordering] = useState(false)
-	const [draftOrder, setDraftOrder] = useState<ReorderableEntry<string>[]>([])
 	const availableSources = availableRouletteSources(
 		collectionStore,
 		settings.excludedCollectionIds
@@ -65,18 +64,16 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 	)
 
 	const beginReordering = () => {
-		setDraftOrder(reorderEntries)
 		setReordering(true)
 	}
 
-	const saveOrder = () => {
+	const saveOrder = (entries: ReorderableEntry<string>[]) => {
 		void store.update((currentSettings) =>
 			setPinnedSourceOrder(
 				currentSettings,
-				draftOrder.flatMap((entry) => (entry.data ? [entry.data] : []))
+				entries.flatMap((entry) => (entry.data ? [entry.data] : []))
 			)
 		)
-		setReordering(false)
 	}
 
 	if (reordering) {
@@ -85,24 +82,19 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 				<PanelSection title="Reorder Pinned Shortcuts">
 					<PanelSectionRow>
 						<div>
-							Select the list and activate Reorder in the footer. Use ↑ and ↓
-							to move a shortcut, then activate Save Order to finish moving.
-							Choose Apply Order below to persist the result.
+							Select a shortcut, then choose Reorder in the footer. Move it
+							with ↑ or ↓ and choose Save Order when finished.
 						</div>
 					</PanelSectionRow>
 					<PanelSectionRow>
 						<ReorderableList
-							entries={draftOrder}
-							onSave={setDraftOrder}
+							disableReordering={!loaded || saving}
+							entries={reorderEntries}
+							onSave={saveOrder}
 						/>
 					</PanelSectionRow>
 					<PanelSectionRow>
-						<ButtonItem onClick={saveOrder}>Apply Order</ButtonItem>
-					</PanelSectionRow>
-					<PanelSectionRow>
-						<ButtonItem onClick={() => setReordering(false)}>
-							Cancel
-						</ButtonItem>
+						<ButtonItem onClick={() => setReordering(false)}>Done</ButtonItem>
 					</PanelSectionRow>
 				</PanelSection>
 			</div>
@@ -142,7 +134,7 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 						description={
 							pinnedSources.length < 2
 								? "Pin at least two shortcuts to change their order."
-								: "Arrange shortcuts with explicit up and down controls."
+								: "Use Decky's native reorder controls."
 						}
 						onClick={beginReordering}
 					>
