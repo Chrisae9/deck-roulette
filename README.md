@@ -6,11 +6,13 @@ A Decky Loader plugin that opens a randomly selected game from:
 - Your owned games
 - Any individual Steam collection
 
-Collections can be excluded from the broad Installed and My Games pools while
-remaining available for their own collection roulette. This is useful for
-collections such as EmuDeck's Emulation collection.
+Installed and My Games are pinned in Quick Access by default. Any game pool can
+be pinned, unpinned, and reordered, while the complete list remains available
+from the All Game Pools menu.
 
-![DeckRoulette in the Decky quick-access menu](screenshots/001_random_game.jpg)
+Collections can also be excluded from the broad Installed and My Games pools
+while remaining available for their own collection roulette. This is useful
+for collections such as EmuDeck's Emulation collection.
 
 ## Development
 

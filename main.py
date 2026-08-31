@@ -5,7 +5,10 @@ from typing import Any
 import decky
 
 
-DEFAULT_SETTINGS = {"excludedCollectionIds": []}
+DEFAULT_SETTINGS = {
+    "excludedCollectionIds": [],
+    "pinnedSourceIds": ["builtin:installed", "builtin:my-games"],
+}
 SETTINGS_DIR = getattr(decky, "DECKY_SETTINGS_DIR", None)
 if SETTINGS_DIR is None:
     SETTINGS_DIR = decky.DECKY_PLUGIN_SETTINGS_DIR
@@ -14,33 +17,41 @@ if SETTINGS_DIR is None:
 class Plugin:
     settings_path = Path(SETTINGS_DIR) / "settings.json"
 
+    def _default_settings(self) -> dict[str, list[str]]:
+        return {
+            key: list(value)
+            for key, value in DEFAULT_SETTINGS.items()
+        }
+
     def _validated_settings(self, settings: Any) -> dict[str, list[str]]:
         if not isinstance(settings, dict):
-            return DEFAULT_SETTINGS.copy()
+            return self._default_settings()
 
-        excluded_ids = settings.get("excludedCollectionIds", [])
-        if not isinstance(excluded_ids, list):
-            excluded_ids = []
+        validated_settings: dict[str, list[str]] = {}
+        for key, default_ids in DEFAULT_SETTINGS.items():
+            ids = settings.get(key, default_ids)
+            if not isinstance(ids, list):
+                ids = default_ids
 
-        return {
-            "excludedCollectionIds": list(
+            validated_settings[key] = list(
                 dict.fromkeys(
-                    collection_id
-                    for collection_id in excluded_ids
-                    if isinstance(collection_id, str)
+                    item_id
+                    for item_id in ids
+                    if isinstance(item_id, str)
                 )
             )
-        }
+
+        return validated_settings
 
     async def get_settings(self) -> dict[str, list[str]]:
         try:
             with self.settings_path.open(encoding="utf-8") as settings_file:
                 return self._validated_settings(json.load(settings_file))
         except FileNotFoundError:
-            return DEFAULT_SETTINGS.copy()
+            return self._default_settings()
         except (OSError, json.JSONDecodeError):
             decky.logger.exception("Could not read DeckRoulette settings")
-            return DEFAULT_SETTINGS.copy()
+            return self._default_settings()
 
     async def save_settings(self, settings: Any) -> dict[str, list[str]]:
         validated_settings = self._validated_settings(settings)

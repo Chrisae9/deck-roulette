@@ -1,7 +1,5 @@
 import { Navigation } from "@decky/ui"
 
-export const HIDDEN_COLLECTION_IDS = ["local-install", "uncategorized"]
-
 export const randomIndex = (max: number) => Math.floor(Math.random() * max)
 
 export const navigateToRandomGame = (appIds: number[]) => {
