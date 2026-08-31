@@ -1,16 +1,14 @@
 import {
 	ButtonItem,
-	Menu,
-	MenuItem,
 	Navigation,
 	PanelSection,
 	PanelSectionRow,
-	showContextMenu,
 } from "@decky/ui"
+import { useState } from "react"
 
 import {
 	availableRouletteSources,
-	resolvePinnedSources,
+	partitionSourcesByPinned,
 	selectableCollections,
 } from "../gamePools"
 import { SETTINGS_ROUTE } from "../routes"
@@ -24,39 +22,20 @@ type QuickAccessProps = {
 export const QuickAccess = ({ store }: QuickAccessProps) => {
 	const { collectionStore }: { collectionStore?: CollectionStore } = window as any
 	const { settings, loaded, saving, error } = useSettingsStore(store)
+	const [showOtherLists, setShowOtherLists] = useState(false)
 	const collections = selectableCollections(collectionStore)
 	const availableSources = availableRouletteSources(
 		collectionStore,
 		settings.excludedCollectionIds
 	)
-	const pinnedSources = resolvePinnedSources(
-		availableSources,
-		settings.pinnedSourceIds
-	)
+	const { pinnedSources, availableSources: otherSources } =
+		partitionSourcesByPinned(availableSources, settings.pinnedSourceIds)
 	const knownCollectionIds = new Set(
 		collections.map((collection) => collection.id)
 	)
 	const excludedCount = settings.excludedCollectionIds.filter((id) =>
 		knownCollectionIds.has(id)
 	).length
-
-	const openGamePoolMenu = (event: MouseEvent) => {
-		showContextMenu(
-			<Menu label="Choose a Game List">
-				{availableSources.map((source) => (
-					<MenuItem
-						key={source.id}
-						disabled={source.appIds.length === 0}
-						onClick={() => navigateToRandomGame(source.appIds)}
-						onOKActionDescription={`Random game from ${source.label}`}
-					>
-						{source.label} ({source.appIds.length})
-					</MenuItem>
-				))}
-			</Menu>,
-			event.currentTarget ?? undefined
-		)
-	}
 
 	const openSettings = () => {
 		Navigation.Navigate(`${SETTINGS_ROUTE}/shortcuts`)
@@ -82,15 +61,30 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 						</ButtonItem>
 					</PanelSectionRow>
 				))}
-				<PanelSectionRow>
-					<ButtonItem
-						layout="below"
-						disabled={!loaded}
-						onClick={openGamePoolMenu}
-					>
-						Choose Another List…
-					</ButtonItem>
-				</PanelSectionRow>
+				{otherSources.length > 0 ? (
+					<PanelSectionRow>
+						<ButtonItem
+							layout="below"
+							disabled={!loaded}
+							onClick={() => setShowOtherLists((visible) => !visible)}
+						>
+							{showOtherLists ? "Hide Other Lists" : "Show Other Lists…"}
+						</ButtonItem>
+					</PanelSectionRow>
+				) : null}
+				{showOtherLists
+					? otherSources.map((source) => (
+							<PanelSectionRow key={source.id}>
+								<ButtonItem
+									layout="below"
+									disabled={source.appIds.length === 0}
+									onClick={() => navigateToRandomGame(source.appIds)}
+								>
+									{source.label} ({source.appIds.length})
+								</ButtonItem>
+							</PanelSectionRow>
+						))
+					: null}
 			</PanelSection>
 			<PanelSection title="Settings">
 				{error ? (

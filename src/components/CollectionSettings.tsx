@@ -1,22 +1,18 @@
 import {
 	ButtonItem,
-	ConfirmModal,
-	DialogButton,
-	Field,
 	PanelSection,
 	PanelSectionRow,
+	ReorderableEntry,
+	ReorderableList,
 	SidebarNavigation,
-	ShowModalResult,
 	ToggleField,
-	showModal,
 } from "@decky/ui"
 import { useState } from "react"
-import { FaArrowDown, FaArrowUp, FaFilter, FaThumbtack } from "react-icons/fa"
+import { FaArrowsAltV, FaFilter, FaThumbtack } from "react-icons/fa"
 
 import {
 	createDefaultSettings,
 	INSTALLED_SOURCE_ID,
-	moveItem,
 	MY_GAMES_SOURCE_ID,
 	setCollectionExcluded,
 	setPinnedSourceOrder,
@@ -25,7 +21,6 @@ import {
 import {
 	availableRouletteSources,
 	partitionSourcesByPinned,
-	RouletteSource,
 	selectableCollections,
 } from "../gamePools"
 import { SETTINGS_ROUTE } from "../routes"
@@ -42,78 +37,11 @@ const ErrorRow = ({ error }: { error?: string }) =>
 		</PanelSectionRow>
 	) : null
 
-type ShortcutOrderModalProps = {
-	closeModal: () => void
-	onSave: (sourceIds: string[]) => void
-	sources: RouletteSource[]
-}
-
-const ShortcutOrderModal = ({
-	closeModal,
-	onSave,
-	sources,
-}: ShortcutOrderModalProps) => {
-	const sourceById = new Map(sources.map((source) => [source.id, source]))
-	const [draftSourceIds, setDraftSourceIds] = useState(
-		sources.map((source) => source.id)
-	)
-
-	return (
-		<ConfirmModal
-			bAllowFullSize
-			strTitle="Change Shortcut Order"
-			strOKButtonText="Save Order"
-			strCancelButtonText="Cancel"
-			onCancel={closeModal}
-			onOK={() => {
-				onSave(draftSourceIds)
-				closeModal()
-			}}
-		>
-			<div style={{ marginBottom: "16px" }}>
-				Use the arrow buttons to arrange Quick Access. Save Order applies the
-				new order; Cancel leaves it unchanged.
-			</div>
-			{draftSourceIds.map((sourceId, index) => {
-				const source = sourceById.get(sourceId)
-				if (!source) return null
-
-				return (
-					<Field key={sourceId} label={`${index + 1}. ${source.label}`}>
-						<div style={{ display: "flex", gap: "8px" }}>
-							<DialogButton
-								disabled={index === 0}
-								onOKActionDescription={`Move ${source.label} up`}
-								onClick={() =>
-									setDraftSourceIds((sourceIds) =>
-										moveItem(sourceIds, index, index - 1)
-									)
-								}
-							>
-								<FaArrowUp />
-							</DialogButton>
-							<DialogButton
-								disabled={index === draftSourceIds.length - 1}
-								onOKActionDescription={`Move ${source.label} down`}
-								onClick={() =>
-									setDraftSourceIds((sourceIds) =>
-										moveItem(sourceIds, index, index + 1)
-									)
-								}
-							>
-								<FaArrowDown />
-							</DialogButton>
-						</div>
-					</Field>
-				)
-			})}
-		</ConfirmModal>
-	)
-}
-
 const ShortcutSettings = ({ store }: SettingsPageProps) => {
 	const { collectionStore }: { collectionStore?: CollectionStore } = window as any
 	const { settings, loaded, saving, error } = useSettingsStore(store)
+	const [reordering, setReordering] = useState(false)
+	const [draftOrder, setDraftOrder] = useState<ReorderableEntry<string>[]>([])
 	const availableSources = availableRouletteSources(
 		collectionStore,
 		settings.excludedCollectionIds
@@ -123,19 +51,61 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 			availableSources,
 			settings.pinnedSourceIds
 		)
+	const reorderEntries: ReorderableEntry<string>[] = pinnedSources.map(
+		(source, position) => ({
+			label: (
+				<span style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+					<FaArrowsAltV />
+					{source.label}
+				</span>
+			),
+			data: source.id,
+			position,
+		})
+	)
 
-	const openOrderModal = () => {
-		let modal: ShowModalResult
-		modal = showModal(
-			<ShortcutOrderModal
-				closeModal={() => modal.Close()}
-				sources={pinnedSources}
-				onSave={(sourceIds) =>
-					void store.update((currentSettings) =>
-						setPinnedSourceOrder(currentSettings, sourceIds)
-					)
-				}
-			/>
+	const beginReordering = () => {
+		setDraftOrder(reorderEntries)
+		setReordering(true)
+	}
+
+	const saveOrder = () => {
+		void store.update((currentSettings) =>
+			setPinnedSourceOrder(
+				currentSettings,
+				draftOrder.flatMap((entry) => (entry.data ? [entry.data] : []))
+			)
+		)
+		setReordering(false)
+	}
+
+	if (reordering) {
+		return (
+			<div>
+				<PanelSection title="Reorder Pinned Shortcuts">
+					<PanelSectionRow>
+						<div>
+							Select the list and activate Reorder in the footer. Use ↑ and ↓
+							to move a shortcut, then activate Save Order to finish moving.
+							Choose Apply Order below to persist the result.
+						</div>
+					</PanelSectionRow>
+					<PanelSectionRow>
+						<ReorderableList
+							entries={draftOrder}
+							onSave={setDraftOrder}
+						/>
+					</PanelSectionRow>
+					<PanelSectionRow>
+						<ButtonItem onClick={saveOrder}>Apply Order</ButtonItem>
+					</PanelSectionRow>
+					<PanelSectionRow>
+						<ButtonItem onClick={() => setReordering(false)}>
+							Cancel
+						</ButtonItem>
+					</PanelSectionRow>
+				</PanelSection>
+			</div>
 		)
 	}
 
@@ -174,7 +144,7 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 								? "Pin at least two shortcuts to change their order."
 								: "Arrange shortcuts with explicit up and down controls."
 						}
-						onClick={openOrderModal}
+						onClick={beginReordering}
 					>
 						Change Order…
 					</ButtonItem>
