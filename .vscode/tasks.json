@@ -16,15 +16,15 @@
 			"type": "shell",
 			"group": "build",
 			"detail": "Setup pnpm",
-			"command": "pnpm i",
+			"command": "npx -y pnpm@9.4.0 i",
 			"problemMatcher": []
 		},
 		{
-			"label": "updatefrontendlib",
+			"label": "updatedeckysdk",
 			"type": "shell",
 			"group": "build",
-			"detail": "Update deck-frontend-lib",
-			"command": "pnpm update decky-frontend-lib --latest",
+			"detail": "Update Decky SDK dependencies",
+			"command": "npx -y pnpm@9.4.0 update @decky/api @decky/rollup @decky/ui --latest",
 			"problemMatcher": []
 		},
 		{
@@ -39,7 +39,7 @@
 		{
 			"label": "buildall",
 			"group": "build",
-			"detail": "Build decky-plugin-template",
+			"detail": "Build DeckRoulette",
 			"dependsOrder": "sequence",
 			"dependsOn": ["pnpmsetup", "build"],
 			"problemMatcher": []

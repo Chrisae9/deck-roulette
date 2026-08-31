@@ -4,6 +4,7 @@ ifneq (,$(wildcard ./.env))
 endif
 
 SHELL=bash
+PNPM ?= npx -y pnpm@9.4.0
 
 help: ## Display list of tasks with descriptions
 	@echo "+ $@"
@@ -11,7 +12,7 @@ help: ## Display list of tasks with descriptions
 
 vendor: ## Install project dependencies
 	@echo "+ $@"
-	@pnpm i
+	@$(PNPM) i
 
 env: ## Create default .env file
 	@echo "+ $@"
@@ -28,20 +29,16 @@ init: ## Initialize project
 	@echo -e "3. Build your code with \`\033[0;36mmake build\033[0m\` or \`\033[0;36mmake docker-build\033[0m\` to build inside a docker container"
 	@echo -e "4. Deploy your plugin code to steamdeck with \`\033[0;36mmake deploy\033[0m\`"
 
-update-frontend-lib: ## Update decky-frontend-lib
+update-decky-dependencies: ## Update Decky SDK dependencies
 	@echo "+ $@"
-	@pnpm update decky-frontend-lib --latest
+	@$(PNPM) update @decky/api @decky/rollup @decky/ui --latest
 
 build-front: ## Build frontend
 	@echo "+ $@"
-	@pnpm run build
-
-build-back: ## Build backend
-	@echo "+ $@"
-	@make -C ./backend
+	@$(PNPM) run build
 
 build: ## Build everything
-	@$(MAKE) build-front build-back
+	@$(MAKE) build-front
 
 copy-ssh-key: ## Copy public ssh key to steamdeck
 	@echo "+ $@"
@@ -101,6 +98,5 @@ docker-rebuild-image: ## Rebuild docker image
 	@docker compose build --pull
 
 docker-build: ## Build project inside docker container
-	@$(MAKE) build-back
 	@echo "+ $@"
 	@docker run --rm -i -v $(PWD):/plugin -v $(PWD)/tmp/out:/out ghcr.io/steamdeckhomebrew/builder:latest

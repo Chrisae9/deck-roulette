@@ -1,15 +1,17 @@
 {
 	"name": "deck-roulette",
-	"version": "1.1.6",
+	"version": "1.1.7",
 	"description": "A plugin that allows you to navigate to a random game in your library or a Steam Collection.",
+	"type": "module",
+	"packageManager": "pnpm@9.4.0",
 	"scripts": {
-		"build": "shx rm -rf dist && rollup -c",
+		"build": "rollup -c",
 		"watch": "rollup -c -w",
-		"test": "echo \"Error: no test specified\" && exit 1"
+		"test": "tsc --noEmit"
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/davocarli/deck-roulette.git"
+		"url": "git+https://github.com/chrisae9/deck-roulette.git"
 	},
 	"keywords": [
 		"decky",
@@ -23,26 +25,23 @@
 	"author": "Jonas Dellinger <jonas@dellinger.dev>, Chris Alves <contact@chis.dev>",
 	"license": "BSD-3-Clause",
 	"bugs": {
-		"url": "https://github.com/davocarli/deck-roulette/issues"
+		"url": "https://github.com/chrisae9/deck-roulette/issues"
 	},
-	"homepage": "https://github.com/davocarli/deck-roulette#readme",
+	"homepage": "https://github.com/chrisae9/deck-roulette#readme",
 	"devDependencies": {
-		"@rollup/plugin-commonjs": "^21.1.0",
-		"@rollup/plugin-json": "^4.1.0",
-		"@rollup/plugin-node-resolve": "^13.3.0",
-		"@rollup/plugin-replace": "^4.0.0",
-		"@rollup/plugin-typescript": "^8.5.0",
-		"@types/react": "16.14.0",
+		"@decky/rollup": "^1.0.2",
+		"@decky/ui": "^4.12.0",
+		"@rollup/rollup-linux-x64-musl": "^4.53.3",
+		"@types/react": "19.1.1",
+		"@types/react-dom": "19.1.1",
 		"@types/webpack": "^5.28.1",
-		"rollup": "^2.79.1",
-		"rollup-plugin-import-assets": "^1.1.1",
-		"shx": "^0.3.4",
-		"tslib": "^2.5.2",
-		"typescript": "^4.9.5"
+		"rollup": "^4.53.3",
+		"typescript": "^5.6.2"
 	},
 	"dependencies": {
-		"decky-frontend-lib": "^3.25.0",
-		"react-icons": "^4.8.0"
+		"@decky/api": "^1.1.3",
+		"react-icons": "^5.3.0",
+		"tslib": "^2.7.0"
 	},
 	"pnpm": {
 		"peerDependencyRules": {

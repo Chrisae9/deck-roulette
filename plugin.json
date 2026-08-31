@@ -2,9 +2,10 @@
 	"name": "DeckRoulette",
 	"author": "Chrisae9, davocarli",
 	"flags": [],
+	"api_version": 1,
 	"publish": {
 		"tags": ["random", "library", "games", "collections"],
 		"description": "A plugin that allows you to navigate to a random game in your library or a Steam Collection.",
-		"image": "https://github.com/davocarli/deck-roulette/blob/main/screenshots/001_random_game.jpg?raw=true"
+		"image": "https://raw.githubusercontent.com/chrisae9/deck-roulette/main/screenshots/001_random_game.jpg"
 	}
 }
