@@ -9,7 +9,7 @@ import {
 	Toggle,
 	ToggleField,
 } from "@decky/ui"
-import { useEffect, useRef } from "react"
+import { useEffect, useMemo, useRef } from "react"
 import { FaArrowsAltV, FaFilter, FaThumbtack } from "react-icons/fa"
 
 import {
@@ -48,6 +48,7 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 	const pendingFocusSourceId = useRef<string | undefined>(undefined)
 	const reorderListRoot = useRef<HTMLDivElement>(null)
 	const reorderActive = useRef(false)
+	const reorderSavePending = useRef(false)
 	const availableSources = availableRouletteSources(
 		collectionStore,
 		settings.excludedCollectionIds
@@ -57,6 +58,8 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 			availableSources,
 			settings.pinnedSourceIds
 		)
+	const shortcutState = useRef({ loaded, saving, pinnedSources })
+	shortcutState.current = { loaded, saving, pinnedSources }
 	const reorderEntries: ReorderableEntry<string>[] = pinnedSources.map(
 		(source, position) => ({
 			label: (
@@ -91,8 +94,19 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 		const ownerWindow = focusTarget?.ownerDocument.defaultView
 		if (!focusTarget || !ownerWindow) return
 
+		const checkbox =
+			focusTarget.querySelector<HTMLElement>('[role="checkbox"]')
+		if (
+			checkbox &&
+			ownerWindow.document.activeElement === checkbox &&
+			checkbox.classList.contains("gpfocus")
+		) {
+			pendingFocusSourceId.current = undefined
+			return
+		}
+
 		const timeout = ownerWindow.setTimeout(() => {
-			focusTarget.querySelector<HTMLElement>('[role="checkbox"]')?.focus()
+			checkbox?.focus()
 			pendingFocusSourceId.current = undefined
 		}, 50)
 
@@ -149,6 +163,7 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 
 	useEffect(() => {
 		if (saving) reorderActive.current = false
+		else reorderSavePending.current = false
 	}, [saving])
 
 	const saveOrder = (entries: ReorderableEntry<string>[]) => {
@@ -169,6 +184,7 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 			orderedSourceIds,
 			focusedSourceId
 		)
+		reorderSavePending.current = true
 
 		void store.update((currentSettings) => ({
 			...currentSettings,
@@ -178,30 +194,37 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 			),
 		}))
 	}
-	const PinnedToggle = ({
-		entry,
-	}: {
-		entry: ReorderableEntry<string>
-	}) => (
-		<div
-			ref={entry.data ? registerFocusTarget(entry.data) : undefined}
-			onClick={(event) => event.stopPropagation()}
-		>
-			<Toggle
-				value
-				disabled={!loaded || saving || !entry.data}
-				onChange={(pinned) => {
-					if (!entry.data) return
-					rememberAdjacentFocus(
-						pinnedSources.map(({ id }) => id),
-						entry.data
-					)
-					void store.update((currentSettings) =>
-						setSourcePinned(currentSettings, entry.data!, pinned)
-					)
-				}}
-			/>
-		</div>
+	const PinnedToggle = useMemo(
+		() =>
+			({ entry }: { entry: ReorderableEntry<string> }) => {
+				const { loaded, saving, pinnedSources } = shortcutState.current
+				return (
+					<div
+						ref={entry.data ? registerFocusTarget(entry.data) : undefined}
+						onClick={(event) => event.stopPropagation()}
+					>
+						<Toggle
+							value
+							disabled={
+								!loaded ||
+								(saving && !reorderSavePending.current) ||
+								!entry.data
+							}
+							onChange={(pinned) => {
+								if (!entry.data) return
+								rememberAdjacentFocus(
+									pinnedSources.map(({ id }) => id),
+									entry.data
+								)
+								void store.update((currentSettings) =>
+									setSourcePinned(currentSettings, entry.data!, pinned)
+								)
+							}}
+						/>
+					</div>
+				)
+			},
+		[store]
 	)
 
 	return (
