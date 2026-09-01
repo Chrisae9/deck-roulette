@@ -7,7 +7,6 @@ import {
 	SidebarNavigation,
 	ToggleField,
 } from "@decky/ui"
-import { useState } from "react"
 import { FaArrowsAltV, FaFilter, FaThumbtack } from "react-icons/fa"
 
 import {
@@ -40,7 +39,6 @@ const ErrorRow = ({ error }: { error?: string }) =>
 const ShortcutSettings = ({ store }: SettingsPageProps) => {
 	const { collectionStore }: { collectionStore?: CollectionStore } = window as any
 	const { settings, loaded, saving, error } = useSettingsStore(store)
-	const [reordering, setReordering] = useState(false)
 	const availableSources = availableRouletteSources(
 		collectionStore,
 		settings.excludedCollectionIds
@@ -63,10 +61,6 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 		})
 	)
 
-	const beginReordering = () => {
-		setReordering(true)
-	}
-
 	const saveOrder = (entries: ReorderableEntry<string>[]) => {
 		void store.update((currentSettings) =>
 			setPinnedSourceOrder(
@@ -76,16 +70,17 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 		)
 	}
 
-	if (reordering) {
-		return (
-			<div>
-				<PanelSection title="Reorder Pinned Shortcuts">
-					<PanelSectionRow>
-						<div>
-							Select a shortcut, then choose Reorder in the footer. Move it
-							with ↑ or ↓ and choose Save Order when finished.
-						</div>
-					</PanelSectionRow>
+	return (
+		<div>
+			<PanelSection title="Pinned Shortcut Order">
+				<ErrorRow error={error} />
+				<PanelSectionRow>
+					<div>
+						Select a shortcut, then choose Reorder in the footer. Move it
+						with ↑ or ↓ and choose Save Order when finished.
+					</div>
+				</PanelSectionRow>
+				{pinnedSources.length > 0 ? (
 					<PanelSectionRow>
 						<ReorderableList
 							disableReordering={!loaded || saving}
@@ -93,54 +88,27 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 							onSave={saveOrder}
 						/>
 					</PanelSectionRow>
-					<PanelSectionRow>
-						<ButtonItem onClick={() => setReordering(false)}>Done</ButtonItem>
-					</PanelSectionRow>
-				</PanelSection>
-			</div>
-		)
-	}
-
-	return (
-		<div>
-			<PanelSection title="Pinned Shortcuts">
-				<ErrorRow error={error} />
-				<PanelSectionRow>
-					<div>These shortcuts appear in Decky Quick Access.</div>
-				</PanelSectionRow>
-				{pinnedSources.length > 0 ? (
-					pinnedSources.map((source) => (
-						<PanelSectionRow key={source.id}>
-							<ToggleField
-								label={source.label}
-								checked
-								disabled={!loaded || saving}
-								onChange={(pinned) =>
-									void store.update((currentSettings) =>
-										setSourcePinned(currentSettings, source.id, pinned)
-									)
-								}
-							/>
-						</PanelSectionRow>
-					))
 				) : (
 					<PanelSectionRow>
 						<div>No shortcuts are pinned.</div>
 					</PanelSectionRow>
 				)}
-				<PanelSectionRow>
-					<ButtonItem
-						disabled={!loaded || saving || pinnedSources.length < 2}
-						description={
-							pinnedSources.length < 2
-								? "Pin at least two shortcuts to change their order."
-								: "Use Decky's native reorder controls."
-						}
-						onClick={beginReordering}
-					>
-						Change Order…
-					</ButtonItem>
-				</PanelSectionRow>
+			</PanelSection>
+			<PanelSection title="Pinned Shortcuts">
+				{pinnedSources.map((source) => (
+					<PanelSectionRow key={source.id}>
+						<ToggleField
+							label={source.label}
+							checked
+							disabled={!loaded || saving}
+							onChange={(pinned) =>
+								void store.update((currentSettings) =>
+									setSourcePinned(currentSettings, source.id, pinned)
+								)
+							}
+						/>
+					</PanelSectionRow>
+				))}
 			</PanelSection>
 			<PanelSection title="Available Shortcuts">
 				{availableShortcuts.length > 0 ? (

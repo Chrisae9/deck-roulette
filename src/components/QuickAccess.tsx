@@ -42,7 +42,6 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 		Navigation.CloseSideMenus()
 	}
 	const openRandomGame = (appIds: number[]) => {
-		setBrowsingOtherLists(false)
 		navigateToRandomGame(appIds)
 	}
 
