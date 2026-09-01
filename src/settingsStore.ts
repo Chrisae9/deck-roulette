@@ -1,5 +1,4 @@
 import { callable } from "@decky/api"
-import { useEffect, useSyncExternalStore } from "react"
 
 import { createDefaultSettings, PluginSettings } from "./collectionSettings"
 
@@ -22,8 +21,11 @@ export class SettingsStore {
 		loaded: false,
 		saving: false,
 	}
+	private persistedSettings = this.snapshot.settings
 	private listeners = new Set<() => void>()
 	private loadStarted = false
+	private pendingSaveCount = 0
+	private saveQueue: Promise<void> = Promise.resolve()
 
 	subscribe = (listener: () => void) => {
 		this.listeners.add(listener)
@@ -43,6 +45,7 @@ export class SettingsStore {
 
 		try {
 			const settings = await getSettings()
+			this.persistedSettings = settings
 			this.setSnapshot({ settings, loaded: true, saving: false })
 		} catch {
 			this.setSnapshot({
@@ -56,40 +59,38 @@ export class SettingsStore {
 	async update(
 		updateSettings: (settings: PluginSettings) => PluginSettings
 	) {
-		if (this.snapshot.saving) return
-
-		const previousSettings = this.snapshot.settings
-		const nextSettings = updateSettings(previousSettings)
+		const nextSettings = updateSettings(this.snapshot.settings)
+		this.pendingSaveCount += 1
 		this.setSnapshot({
 			settings: nextSettings,
 			loaded: true,
 			saving: true,
 		})
 
-		try {
-			const settings = await saveSettings(nextSettings)
-			this.setSnapshot({ settings, loaded: true, saving: false })
-		} catch {
-			this.setSnapshot({
-				settings: previousSettings,
-				loaded: true,
-				saving: false,
-				error: "Could not save DeckRoulette settings.",
-			})
-		}
+		const saveOperation = this.saveQueue.then(async () => {
+			try {
+				const settings = await saveSettings(nextSettings)
+				this.persistedSettings = settings
+				this.pendingSaveCount -= 1
+
+				if (this.pendingSaveCount === 0) {
+					this.setSnapshot({ settings, loaded: true, saving: false })
+				}
+			} catch {
+				this.pendingSaveCount -= 1
+				this.setSnapshot({
+					settings:
+						this.pendingSaveCount === 0
+							? this.persistedSettings
+							: this.snapshot.settings,
+					loaded: true,
+					saving: this.pendingSaveCount > 0,
+					error: "Could not save DeckRoulette settings.",
+				})
+			}
+		})
+
+		this.saveQueue = saveOperation
+		await saveOperation
 	}
-}
-
-export const useSettingsStore = (store: SettingsStore) => {
-	const snapshot = useSyncExternalStore(
-		store.subscribe,
-		store.getSnapshot,
-		store.getSnapshot
-	)
-
-	useEffect(() => {
-		void store.load()
-	}, [store])
-
-	return snapshot
 }

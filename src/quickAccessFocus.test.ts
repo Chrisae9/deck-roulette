@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest"
 
 import {
 	BROWSE_FOCUS_ID,
+	focusableSourceIds,
 	OTHER_LISTS_BACK_FOCUS_ID,
 	resolveMainFocus,
 	resolveOtherListsFocus,
@@ -9,6 +10,19 @@ import {
 } from "./quickAccessFocus"
 
 describe("Quick Access focus fallbacks", () => {
+	test("ignores empty game lists when choosing a focus target", () => {
+		const sourceIds = focusableSourceIds([
+			{ id: "empty", appIds: [] },
+			{ id: "ready", appIds: [42] },
+		])
+		const emptySourceIds = focusableSourceIds([{ id: "empty", appIds: [] }])
+
+		expect(resolveMainFocus(sourceIds, true, "empty")).toBe("ready")
+		expect(resolveOtherListsFocus(emptySourceIds, "empty")).toBe(
+			OTHER_LISTS_BACK_FOCUS_ID
+		)
+	})
+
 	test("restores a pinned shortcut when it still exists", () => {
 		expect(resolveMainFocus(["installed", "favorites"], true, "favorites"))
 			.toBe("favorites")

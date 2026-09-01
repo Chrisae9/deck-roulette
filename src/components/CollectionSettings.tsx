@@ -28,7 +28,8 @@ import {
 	selectableCollections,
 } from "../gamePools"
 import { SETTINGS_ROUTE } from "../routes"
-import { SettingsStore, useSettingsStore } from "../settingsStore"
+import { SettingsStore } from "../settingsStore"
+import { useSettingsStore } from "../useSettingsStore"
 
 type SettingsPageProps = {
 	store: SettingsStore

@@ -14,9 +14,11 @@ import {
 	selectableCollections,
 } from "../gamePools"
 import { SETTINGS_ROUTE } from "../routes"
-import { SettingsStore, useSettingsStore } from "../settingsStore"
+import { SettingsStore } from "../settingsStore"
+import { useSettingsStore } from "../useSettingsStore"
 import {
 	BROWSE_FOCUS_ID,
+	focusableSourceIds,
 	OTHER_LISTS_BACK_FOCUS_ID,
 	resolveMainFocus,
 	resolveOtherListsFocus,
@@ -66,16 +68,18 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 		knownCollectionIds.has(id)
 	).length
 	const preferredMainFocusId = resolveMainFocus(
-		pinnedSources.map(({ id }) => id),
+		focusableSourceIds(pinnedSources),
 		otherSources.length > 0,
 		lastMainFocusId
 	)
 	const preferredOtherFocusId = resolveOtherListsFocus(
-		otherSources.map(({ id }) => id),
+		focusableSourceIds(otherSources),
 		lastSelectedOtherSourceId
 	)
 
 	useEffect(() => {
+		if (!loaded) return
+
 		const root = panelRoot.current
 		const ownerWindow = root?.ownerDocument.defaultView
 		if (!root || !ownerWindow) return
@@ -100,7 +104,7 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 			observer.disconnect()
 			if (timeout !== undefined) ownerWindow.clearTimeout(timeout)
 		}
-	}, [browsingOtherLists, preferredMainFocusId, preferredOtherFocusId])
+	}, [browsingOtherLists, loaded, preferredMainFocusId, preferredOtherFocusId])
 
 	const openSettings = () => {
 		lastMainFocusId = undefined

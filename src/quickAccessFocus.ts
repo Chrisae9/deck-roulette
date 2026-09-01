@@ -2,6 +2,10 @@ export const BROWSE_FOCUS_ID = "ui:browse-other-lists"
 export const SETTINGS_FOCUS_ID = "ui:settings"
 export const OTHER_LISTS_BACK_FOCUS_ID = "ui:other-lists-back"
 
+export const focusableSourceIds = (
+	sources: Array<{ id: string; appIds: number[] }>
+) => sources.filter(({ appIds }) => appIds.length > 0).map(({ id }) => id)
+
 export const resolveMainFocus = (
 	pinnedSourceIds: string[],
 	hasOtherSources: boolean,
