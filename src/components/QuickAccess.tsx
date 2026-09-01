@@ -131,7 +131,7 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 			<div ref={panelRoot}>
 				<Focusable
 					key="other-lists"
-					navEntryPreferPosition={NavEntryPositionPreferences.PREFERRED_CHILD}
+					navEntryPreferPosition={NavEntryPositionPreferences.FIRST}
 				>
 					<PanelSection title="Other Game Lists">
 					<PanelSectionRow>
@@ -185,7 +185,7 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 		<div ref={panelRoot}>
 			<Focusable
 				key="shortcuts"
-				navEntryPreferPosition={NavEntryPositionPreferences.PREFERRED_CHILD}
+				navEntryPreferPosition={NavEntryPositionPreferences.FIRST}
 			>
 				<PanelSection title="Random Game">
 				{pinnedSources.map((source) => (

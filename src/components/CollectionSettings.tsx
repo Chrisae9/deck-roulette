@@ -9,7 +9,7 @@ import {
 	Toggle,
 	ToggleField,
 } from "@decky/ui"
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { FaArrowsAltV, FaFilter, FaThumbtack } from "react-icons/fa"
 
 import {
@@ -47,7 +47,8 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 	const focusTargets = useRef(new Map<string, HTMLDivElement>())
 	const pendingFocusSourceId = useRef<string | undefined>(undefined)
 	const reorderListRoot = useRef<HTMLDivElement>(null)
-	const reorderActive = useRef(false)
+	const reorderActiveRef = useRef(false)
+	const [reorderActive, setReorderActive] = useState(false)
 	const reorderSavePending = useRef(false)
 	const availableSources = availableRouletteSources(
 		collectionStore,
@@ -64,7 +65,7 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 		(source, position) => ({
 			label: (
 				<span style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-					<FaArrowsAltV />
+					{reorderActive ? <FaArrowsAltV aria-hidden /> : null}
 					{source.label}
 				</span>
 			),
@@ -121,15 +122,18 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 			const button = (event as CustomEvent<{ button?: GamepadButton }>).detail
 				?.button
 			if (button === GamepadButton.SECONDARY) {
-				reorderActive.current = !reorderActive.current
+				const active = !reorderActiveRef.current
+				reorderActiveRef.current = active
+				setReorderActive(active)
 				return
 			}
 			if (button === GamepadButton.CANCEL) {
-				reorderActive.current = false
+				reorderActiveRef.current = false
+				setReorderActive(false)
 				return
 			}
 			if (
-				!reorderActive.current ||
+				!reorderActiveRef.current ||
 				(button !== GamepadButton.DIR_UP &&
 					button !== GamepadButton.DIR_DOWN)
 			) {
@@ -162,7 +166,10 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 	}, [pinnedSources])
 
 	useEffect(() => {
-		if (saving) reorderActive.current = false
+		if (saving) {
+			reorderActiveRef.current = false
+			setReorderActive(false)
+		}
 		else reorderSavePending.current = false
 	}, [saving])
 
@@ -233,8 +240,8 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 				<ErrorRow error={error} />
 				<PanelSectionRow>
 					<div>
-						Toggle a shortcut off to unpin it. To rearrange, select a row,
-						choose Reorder in the footer, then move it with ↑ or ↓.
+						Toggle a shortcut off to unpin it. Press X to reorder, move the
+						selected shortcut with ↑ or ↓, then press X again to save.
 					</div>
 				</PanelSectionRow>
 				{pinnedSources.length > 0 ? (
