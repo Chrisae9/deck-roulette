@@ -77,7 +77,10 @@ describe("collection settings", () => {
 
 	test("moves shortcuts without mutating the saved order", () => {
 		const original = ["installed", "favorites", "my-games"]
+		const movedDown = moveItem(original, 0, 1)
 
+		expect(movedDown).toEqual(["favorites", "installed", "my-games"])
+		expect(moveItem(movedDown, 1, 0)).toEqual(original)
 		expect(moveItem(original, 2, 0)).toEqual([
 			"my-games",
 			"installed",

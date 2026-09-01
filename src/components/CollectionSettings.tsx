@@ -149,24 +149,27 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 				return
 			}
 
-			const boundarySource =
+			const renderedCheckboxes = Array.from(
+				root.querySelectorAll<HTMLElement>(
+					'[role="checkbox"][aria-checked="true"]'
+				)
+			)
+			const boundaryCheckbox =
 				button === GamepadButton.DIR_UP
-					? pinnedSources[0]
-					: pinnedSources[pinnedSources.length - 1]
-			const focusTarget = boundarySource
-				? focusTargets.current.get(boundarySource.id)
-				: undefined
+					? renderedCheckboxes[0]
+					: renderedCheckboxes[renderedCheckboxes.length - 1]
 			if (
-				!focusTarget ||
+				!boundaryCheckbox ||
 				!event.target ||
-				!focusTarget.contains(event.target as Node)
+				(event.target !== boundaryCheckbox &&
+					!boundaryCheckbox.contains(event.target as Node))
 			) {
 				return
 			}
 
 			event.preventDefault()
 			event.stopPropagation()
-			focusTarget.querySelector<HTMLElement>('[role="checkbox"]')?.focus()
+			boundaryCheckbox.focus()
 		}
 
 		root.addEventListener("vgp_onbuttondown", keepBoundaryFocus, true)
