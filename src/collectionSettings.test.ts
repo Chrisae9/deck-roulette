@@ -5,6 +5,7 @@ import {
 	INSTALLED_SOURCE_ID,
 	moveItem,
 	MY_GAMES_SOURCE_ID,
+	reconcilePinnedSourceOrder,
 	setCollectionExcluded,
 	setPinnedSourceOrder,
 	setSourcePinned,
@@ -94,6 +95,36 @@ describe("collection settings", () => {
 		expect(settings.pinnedSourceIds).toEqual([
 			"collection:favorites",
 			MY_GAMES_SOURCE_ID,
+		])
+	})
+
+	test("does not resurrect a shortcut removed during reordering", () => {
+		expect(
+			reconcilePinnedSourceOrder(
+				[INSTALLED_SOURCE_ID, MY_GAMES_SOURCE_ID],
+				[
+					"collection:removed",
+					MY_GAMES_SOURCE_ID,
+					INSTALLED_SOURCE_ID,
+				]
+			)
+		).toEqual([MY_GAMES_SOURCE_ID, INSTALLED_SOURCE_ID])
+	})
+
+	test("preserves a shortcut pinned while reordering", () => {
+		expect(
+			reconcilePinnedSourceOrder(
+				[
+					INSTALLED_SOURCE_ID,
+					MY_GAMES_SOURCE_ID,
+					"collection:new",
+				],
+				[MY_GAMES_SOURCE_ID, INSTALLED_SOURCE_ID]
+			)
+		).toEqual([
+			MY_GAMES_SOURCE_ID,
+			INSTALLED_SOURCE_ID,
+			"collection:new",
 		])
 	})
 })

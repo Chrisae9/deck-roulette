@@ -14,8 +14,8 @@ import {
 	createDefaultSettings,
 	INSTALLED_SOURCE_ID,
 	MY_GAMES_SOURCE_ID,
+	reconcilePinnedSourceOrder,
 	setCollectionExcluded,
-	setPinnedSourceOrder,
 	setSourcePinned,
 } from "../collectionSettings"
 import {
@@ -63,12 +63,13 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 	)
 
 	const saveOrder = (entries: ReorderableEntry<string>[]) => {
-		void store.update((currentSettings) =>
-			setPinnedSourceOrder(
-				currentSettings,
+		void store.update((currentSettings) => ({
+			...currentSettings,
+			pinnedSourceIds: reconcilePinnedSourceOrder(
+				currentSettings.pinnedSourceIds,
 				entries.flatMap((entry) => (entry.data ? [entry.data] : []))
-			)
-		)
+			),
+		}))
 	}
 	const PinnedToggle = ({
 		entry,

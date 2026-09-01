@@ -66,3 +66,19 @@ export const setPinnedSourceOrder = (
 	...settings,
 	pinnedSourceIds: Array.from(new Set(pinnedSourceIds)),
 })
+
+export const reconcilePinnedSourceOrder = (
+	currentPinnedSourceIds: string[],
+	orderedSourceIds: string[]
+) => {
+	const currentIds = new Set(currentPinnedSourceIds)
+	const orderedCurrentIds = Array.from(new Set(orderedSourceIds)).filter((id) =>
+		currentIds.has(id)
+	)
+	const orderedIds = new Set(orderedCurrentIds)
+
+	return [
+		...orderedCurrentIds,
+		...currentPinnedSourceIds.filter((id) => !orderedIds.has(id)),
+	]
+}
