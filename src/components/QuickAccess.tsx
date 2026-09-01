@@ -108,12 +108,12 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 		Navigation.CloseSideMenus()
 	}
 	const showOtherLists = () => {
-		lastMainFocusId = BROWSE_FOCUS_ID
+		lastMainFocusId = undefined
 		quickAccessView = "other-lists"
 		setBrowsingOtherLists(true)
 	}
 	const showShortcuts = () => {
-		lastMainFocusId = BROWSE_FOCUS_ID
+		lastMainFocusId = undefined
 		quickAccessView = "shortcuts"
 		setBrowsingOtherLists(false)
 	}
