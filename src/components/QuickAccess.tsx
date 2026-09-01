@@ -15,6 +15,13 @@ import {
 } from "../gamePools"
 import { SETTINGS_ROUTE } from "../routes"
 import { SettingsStore, useSettingsStore } from "../settingsStore"
+import {
+	BROWSE_FOCUS_ID,
+	OTHER_LISTS_BACK_FOCUS_ID,
+	resolveMainFocus,
+	resolveOtherListsFocus,
+	SETTINGS_FOCUS_ID,
+} from "../quickAccessFocus"
 import { navigateToRandomGame } from "../utils"
 
 type QuickAccessProps = {
@@ -23,6 +30,7 @@ type QuickAccessProps = {
 
 let quickAccessView: "shortcuts" | "other-lists" = "shortcuts"
 let lastSelectedOtherSourceId: string | undefined
+let lastMainFocusId: string | undefined
 
 export const QuickAccess = ({ store }: QuickAccessProps) => {
 	const { collectionStore }: { collectionStore?: CollectionStore } = window as any
@@ -43,21 +51,37 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 	const excludedCount = settings.excludedCollectionIds.filter((id) =>
 		knownCollectionIds.has(id)
 	).length
+	const preferredMainFocusId = resolveMainFocus(
+		pinnedSources.map(({ id }) => id),
+		otherSources.length > 0,
+		lastMainFocusId
+	)
+	const preferredOtherFocusId = resolveOtherListsFocus(
+		otherSources.map(({ id }) => id),
+		lastSelectedOtherSourceId
+	)
 
 	const openSettings = () => {
+		lastMainFocusId = SETTINGS_FOCUS_ID
 		Navigation.Navigate(`${SETTINGS_ROUTE}/shortcuts`)
 		Navigation.CloseSideMenus()
 	}
 	const showOtherLists = () => {
+		lastMainFocusId = BROWSE_FOCUS_ID
 		quickAccessView = "other-lists"
 		setBrowsingOtherLists(true)
 	}
 	const showShortcuts = () => {
+		lastMainFocusId = BROWSE_FOCUS_ID
 		quickAccessView = "shortcuts"
 		setBrowsingOtherLists(false)
 	}
 	const openRandomGame = (sourceId: string, appIds: number[]) => {
-		if (browsingOtherLists) lastSelectedOtherSourceId = sourceId
+		if (browsingOtherLists) {
+			lastSelectedOtherSourceId = sourceId
+		} else {
+			lastMainFocusId = sourceId
+		}
 		navigateToRandomGame(appIds)
 	}
 
@@ -68,7 +92,14 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 			>
 				<PanelSection title="Other Game Lists">
 					<PanelSectionRow>
-						<ButtonItem layout="below" onClick={showShortcuts}>
+						<ButtonItem
+							{...({
+								preferredFocus:
+									preferredOtherFocusId === OTHER_LISTS_BACK_FOCUS_ID,
+							} as any)}
+							layout="below"
+							onClick={showShortcuts}
+						>
 							← Back to Shortcuts
 						</ButtonItem>
 					</PanelSectionRow>
@@ -77,7 +108,7 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 							<ButtonItem
 								{...({
 									preferredFocus:
-										source.id === lastSelectedOtherSourceId,
+										source.id === preferredOtherFocusId,
 								} as any)}
 								layout="below"
 								disabled={source.appIds.length === 0}
@@ -93,11 +124,16 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 	}
 
 	return (
-		<div>
+		<Focusable
+			navEntryPreferPosition={NavEntryPositionPreferences.PREFERRED_CHILD}
+		>
 			<PanelSection title="Random Game">
 				{pinnedSources.map((source) => (
 					<PanelSectionRow key={source.id}>
 						<ButtonItem
+							{...({
+								preferredFocus: source.id === preferredMainFocusId,
+							} as any)}
 							layout="below"
 							disabled={!loaded || source.appIds.length === 0}
 							description={
@@ -114,6 +150,10 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 				{otherSources.length > 0 ? (
 					<PanelSectionRow>
 						<ButtonItem
+							{...({
+								preferredFocus:
+									preferredMainFocusId === BROWSE_FOCUS_ID,
+							} as any)}
 							layout="below"
 							disabled={!loaded}
 							description={`${otherSources.length} unpinned lists`}
@@ -132,6 +172,9 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 				) : null}
 				<PanelSectionRow>
 					<ButtonItem
+						{...({
+							preferredFocus: preferredMainFocusId === SETTINGS_FOCUS_ID,
+						} as any)}
 						layout="below"
 						disabled={saving}
 						description={`${pinnedSources.length} pinned · ${excludedCount} excluded`}
@@ -141,6 +184,6 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 					</ButtonItem>
 				</PanelSectionRow>
 			</PanelSection>
-		</div>
+		</Focusable>
 	)
 }

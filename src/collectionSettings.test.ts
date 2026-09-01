@@ -40,6 +40,26 @@ describe("collection settings", () => {
 		])
 	})
 
+	test("keeps a reasonable order when a focused middle pin is removed", () => {
+		const withCollections = setPinnedSourceOrder(createDefaultSettings(), [
+			INSTALLED_SOURCE_ID,
+			"collection:party",
+			"collection:emulation",
+			MY_GAMES_SOURCE_ID,
+		])
+		const unpinned = setSourcePinned(
+			withCollections,
+			"collection:party",
+			false
+		)
+
+		expect(unpinned.pinnedSourceIds).toEqual([
+			INSTALLED_SOURCE_ID,
+			"collection:emulation",
+			MY_GAMES_SOURCE_ID,
+		])
+	})
+
 	test("tracks exclusions separately from direct collection pins", () => {
 		const pinned = setSourcePinned(
 			createDefaultSettings(),

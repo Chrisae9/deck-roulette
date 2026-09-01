@@ -5,6 +5,7 @@ import {
 	ReorderableEntry,
 	ReorderableList,
 	SidebarNavigation,
+	Toggle,
 	ToggleField,
 } from "@decky/ui"
 import { FaArrowsAltV, FaFilter, FaThumbtack } from "react-icons/fa"
@@ -69,15 +70,33 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 			)
 		)
 	}
+	const PinnedToggle = ({
+		entry,
+	}: {
+		entry: ReorderableEntry<string>
+	}) => (
+		<div onClick={(event) => event.stopPropagation()}>
+			<Toggle
+				value
+				disabled={!loaded || saving || !entry.data}
+				onChange={(pinned) => {
+					if (!entry.data) return
+					void store.update((currentSettings) =>
+						setSourcePinned(currentSettings, entry.data!, pinned)
+					)
+				}}
+			/>
+		</div>
+	)
 
 	return (
 		<div>
-			<PanelSection title="Pinned Shortcut Order">
+			<PanelSection title="Pinned Shortcuts">
 				<ErrorRow error={error} />
 				<PanelSectionRow>
 					<div>
-						Select a shortcut, then choose Reorder in the footer. Move it
-						with ↑ or ↓ and choose Save Order when finished.
+						Toggle a shortcut off to unpin it. To rearrange, select a row,
+						choose Reorder in the footer, then move it with ↑ or ↓.
 					</div>
 				</PanelSectionRow>
 				{pinnedSources.length > 0 ? (
@@ -85,6 +104,7 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 						<ReorderableList
 							disableReordering={!loaded || saving}
 							entries={reorderEntries}
+							interactables={PinnedToggle}
 							onSave={saveOrder}
 						/>
 					</PanelSectionRow>
@@ -93,22 +113,6 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 						<div>No shortcuts are pinned.</div>
 					</PanelSectionRow>
 				)}
-			</PanelSection>
-			<PanelSection title="Pinned Shortcuts">
-				{pinnedSources.map((source) => (
-					<PanelSectionRow key={source.id}>
-						<ToggleField
-							label={source.label}
-							checked
-							disabled={!loaded || saving}
-							onChange={(pinned) =>
-								void store.update((currentSettings) =>
-									setSourcePinned(currentSettings, source.id, pinned)
-								)
-							}
-						/>
-					</PanelSectionRow>
-				))}
 			</PanelSection>
 			<PanelSection title="Available Shortcuts">
 				{availableShortcuts.length > 0 ? (
