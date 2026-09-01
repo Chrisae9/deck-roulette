@@ -6,7 +6,7 @@ import {
 	PanelSection,
 	PanelSectionRow,
 } from "@decky/ui"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 import {
 	availableRouletteSources,
@@ -61,6 +61,18 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 		lastSelectedOtherSourceId
 	)
 
+	useEffect(() => {
+		const frame = requestAnimationFrame(() => {
+			document
+				.querySelector<HTMLElement>(
+					'[data-deck-roulette-preferred="true"]'
+				)
+				?.focus()
+		})
+
+		return () => cancelAnimationFrame(frame)
+	}, [browsingOtherLists, preferredMainFocusId, preferredOtherFocusId])
+
 	const openSettings = () => {
 		lastMainFocusId = SETTINGS_FOCUS_ID
 		Navigation.Navigate(`${SETTINGS_ROUTE}/shortcuts`)
@@ -95,6 +107,10 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 					<PanelSectionRow>
 						<ButtonItem
 							{...({
+								"data-deck-roulette-preferred":
+									preferredOtherFocusId === OTHER_LISTS_BACK_FOCUS_ID
+										? "true"
+										: undefined,
 								preferredFocus:
 									preferredOtherFocusId === OTHER_LISTS_BACK_FOCUS_ID,
 							} as any)}
@@ -108,6 +124,10 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 						<PanelSectionRow key={source.id}>
 							<ButtonItem
 								{...({
+									"data-deck-roulette-preferred":
+										source.id === preferredOtherFocusId
+											? "true"
+											: undefined,
 									preferredFocus:
 										source.id === preferredOtherFocusId,
 								} as any)}
@@ -134,6 +154,10 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 					<PanelSectionRow key={source.id}>
 						<ButtonItem
 							{...({
+								"data-deck-roulette-preferred":
+									source.id === preferredMainFocusId
+										? "true"
+										: undefined,
 								preferredFocus: source.id === preferredMainFocusId,
 							} as any)}
 							layout="below"
@@ -153,6 +177,10 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 					<PanelSectionRow>
 						<ButtonItem
 							{...({
+								"data-deck-roulette-preferred":
+									preferredMainFocusId === BROWSE_FOCUS_ID
+										? "true"
+										: undefined,
 								preferredFocus:
 									preferredMainFocusId === BROWSE_FOCUS_ID,
 							} as any)}
@@ -175,6 +203,10 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 				<PanelSectionRow>
 					<ButtonItem
 						{...({
+							"data-deck-roulette-preferred":
+								preferredMainFocusId === SETTINGS_FOCUS_ID
+									? "true"
+									: undefined,
 							preferredFocus: preferredMainFocusId === SETTINGS_FOCUS_ID,
 						} as any)}
 						layout="below"
