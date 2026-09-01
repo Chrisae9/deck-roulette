@@ -62,15 +62,16 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 	)
 
 	useEffect(() => {
-		const frame = requestAnimationFrame(() => {
+		const focusPreferredButton = () => {
 			document
 				.querySelector<HTMLElement>(
 					'[data-deck-roulette-preferred="true"]'
 				)
 				?.focus()
-		})
+		}
+		const timeout = window.setTimeout(focusPreferredButton, 100)
 
-		return () => cancelAnimationFrame(frame)
+		return () => window.clearTimeout(timeout)
 	}, [browsingOtherLists, preferredMainFocusId, preferredOtherFocusId])
 
 	const openSettings = () => {
