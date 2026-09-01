@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest"
 
 import {
 	createDefaultSettings,
+	focusAfterItemRemoval,
 	INSTALLED_SOURCE_ID,
 	moveItem,
 	MY_GAMES_SOURCE_ID,
@@ -126,5 +127,20 @@ describe("collection settings", () => {
 			INSTALLED_SOURCE_ID,
 			"collection:new",
 		])
+	})
+
+	test("moves focus to a neighboring row after a list item moves", () => {
+		const ids = ["first", "middle", "last"]
+
+		expect(focusAfterItemRemoval(ids, "first")).toBe("middle")
+		expect(focusAfterItemRemoval(ids, "middle")).toBe("last")
+		expect(focusAfterItemRemoval(ids, "last")).toBe("middle")
+		expect(focusAfterItemRemoval(["only"], "only")).toBe("only")
+	})
+
+	test("uses a reachable fallback for a stale focused ID", () => {
+		expect(focusAfterItemRemoval(["first", "second"], "deleted"))
+			.toBe("first")
+		expect(focusAfterItemRemoval([], "deleted")).toBe("deleted")
 	})
 })

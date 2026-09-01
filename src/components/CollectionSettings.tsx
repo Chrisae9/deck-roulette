@@ -8,10 +8,12 @@ import {
 	Toggle,
 	ToggleField,
 } from "@decky/ui"
+import { useEffect, useRef } from "react"
 import { FaArrowsAltV, FaFilter, FaThumbtack } from "react-icons/fa"
 
 import {
 	createDefaultSettings,
+	focusAfterItemRemoval,
 	INSTALLED_SOURCE_ID,
 	MY_GAMES_SOURCE_ID,
 	reconcilePinnedSourceOrder,
@@ -40,6 +42,8 @@ const ErrorRow = ({ error }: { error?: string }) =>
 const ShortcutSettings = ({ store }: SettingsPageProps) => {
 	const { collectionStore }: { collectionStore?: CollectionStore } = window as any
 	const { settings, loaded, saving, error } = useSettingsStore(store)
+	const focusTargets = useRef(new Map<string, HTMLDivElement>())
+	const pendingFocusSourceId = useRef<string | undefined>(undefined)
 	const availableSources = availableRouletteSources(
 		collectionStore,
 		settings.excludedCollectionIds
@@ -61,6 +65,35 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 			position,
 		})
 	)
+	const registerFocusTarget =
+		(sourceId: string) => (node: HTMLDivElement | null) => {
+			if (node) {
+				focusTargets.current.set(sourceId, node)
+			} else {
+				focusTargets.current.delete(sourceId)
+			}
+		}
+	const rememberAdjacentFocus = (sourceIds: string[], sourceId: string) => {
+		pendingFocusSourceId.current = focusAfterItemRemoval(sourceIds, sourceId)
+	}
+
+	useEffect(() => {
+		const sourceId = pendingFocusSourceId.current
+		if (!sourceId || saving) return
+
+		const focusTarget =
+			focusTargets.current.get(sourceId) ??
+			focusTargets.current.values().next().value
+		const ownerWindow = focusTarget?.ownerDocument.defaultView
+		if (!focusTarget || !ownerWindow) return
+
+		const timeout = ownerWindow.setTimeout(() => {
+			focusTarget.querySelector<HTMLElement>('[role="checkbox"]')?.focus()
+			pendingFocusSourceId.current = undefined
+		}, 50)
+
+		return () => ownerWindow.clearTimeout(timeout)
+	}, [saving, settings.pinnedSourceIds])
 
 	const saveOrder = (entries: ReorderableEntry<string>[]) => {
 		void store.update((currentSettings) => ({
@@ -76,12 +109,19 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 	}: {
 		entry: ReorderableEntry<string>
 	}) => (
-		<div onClick={(event) => event.stopPropagation()}>
+		<div
+			ref={entry.data ? registerFocusTarget(entry.data) : undefined}
+			onClick={(event) => event.stopPropagation()}
+		>
 			<Toggle
 				value
 				disabled={!loaded || saving || !entry.data}
 				onChange={(pinned) => {
 					if (!entry.data) return
+					rememberAdjacentFocus(
+						pinnedSources.map(({ id }) => id),
+						entry.data
+					)
 					void store.update((currentSettings) =>
 						setSourcePinned(currentSettings, entry.data!, pinned)
 					)
@@ -119,16 +159,25 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 				{availableShortcuts.length > 0 ? (
 					availableShortcuts.map((source) => (
 						<PanelSectionRow key={source.id}>
-							<ToggleField
-								label={source.label}
-								checked={false}
-								disabled={!loaded || saving}
-								onChange={(pinned) =>
-									void store.update((currentSettings) =>
-										setSourcePinned(currentSettings, source.id, pinned)
-									)
-								}
-							/>
+							<div
+								ref={registerFocusTarget(source.id)}
+								style={{ width: "100%" }}
+							>
+								<ToggleField
+									label={source.label}
+									checked={false}
+									disabled={!loaded || saving}
+									onChange={(pinned) => {
+										rememberAdjacentFocus(
+											availableShortcuts.map(({ id }) => id),
+											source.id
+										)
+										void store.update((currentSettings) =>
+											setSourcePinned(currentSettings, source.id, pinned)
+										)
+									}}
+								/>
+							</div>
 						</PanelSectionRow>
 					))
 				) : (

@@ -82,3 +82,10 @@ export const reconcilePinnedSourceOrder = (
 		...currentPinnedSourceIds.filter((id) => !orderedIds.has(id)),
 	]
 }
+
+export const focusAfterItemRemoval = (itemIds: string[], removedId: string) => {
+	const removedIndex = itemIds.indexOf(removedId)
+	if (removedIndex < 0) return itemIds[0] ?? removedId
+
+	return itemIds[removedIndex + 1] ?? itemIds[removedIndex - 1] ?? removedId
+}
