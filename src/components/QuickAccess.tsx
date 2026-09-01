@@ -88,6 +88,7 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 	if (browsingOtherLists) {
 		return (
 			<Focusable
+				key="other-lists"
 				navEntryPreferPosition={NavEntryPositionPreferences.PREFERRED_CHILD}
 			>
 				<PanelSection title="Other Game Lists">
@@ -125,6 +126,7 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 
 	return (
 		<Focusable
+			key="shortcuts"
 			navEntryPreferPosition={NavEntryPositionPreferences.PREFERRED_CHILD}
 		>
 			<PanelSection title="Random Game">
