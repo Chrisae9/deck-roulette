@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest"
 import {
 	createDefaultSettings,
 	focusAfterItemRemoval,
+	focusAfterReorderSave,
 	INSTALLED_SOURCE_ID,
 	moveItem,
 	MY_GAMES_SOURCE_ID,
@@ -142,5 +143,13 @@ describe("collection settings", () => {
 		expect(focusAfterItemRemoval(["first", "second"], "deleted"))
 			.toBe("first")
 		expect(focusAfterItemRemoval([], "deleted")).toBe("deleted")
+	})
+
+	test("keeps focus on the moved shortcut after saving a reorder", () => {
+		const reordered = ["second", "first", "third"]
+
+		expect(focusAfterReorderSave(reordered, "first")).toBe("first")
+		expect(focusAfterReorderSave(reordered, "deleted")).toBe("second")
+		expect(focusAfterReorderSave([], "deleted")).toBeUndefined()
 	})
 })

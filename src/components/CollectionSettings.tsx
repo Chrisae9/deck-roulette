@@ -1,5 +1,6 @@
 import {
 	ButtonItem,
+	GamepadButton,
 	PanelSection,
 	PanelSectionRow,
 	ReorderableEntry,
@@ -14,6 +15,7 @@ import { FaArrowsAltV, FaFilter, FaThumbtack } from "react-icons/fa"
 import {
 	createDefaultSettings,
 	focusAfterItemRemoval,
+	focusAfterReorderSave,
 	INSTALLED_SOURCE_ID,
 	MY_GAMES_SOURCE_ID,
 	reconcilePinnedSourceOrder,
@@ -44,6 +46,8 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 	const { settings, loaded, saving, error } = useSettingsStore(store)
 	const focusTargets = useRef(new Map<string, HTMLDivElement>())
 	const pendingFocusSourceId = useRef<string | undefined>(undefined)
+	const reorderListRoot = useRef<HTMLDivElement>(null)
+	const reorderActive = useRef(false)
 	const availableSources = availableRouletteSources(
 		collectionStore,
 		settings.excludedCollectionIds
@@ -95,12 +99,82 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 		return () => ownerWindow.clearTimeout(timeout)
 	}, [saving, settings.pinnedSourceIds])
 
+	useEffect(() => {
+		const root = reorderListRoot.current
+		if (!root) return
+
+		const keepBoundaryFocus = (event: Event) => {
+			const button = (event as CustomEvent<{ button?: GamepadButton }>).detail
+				?.button
+			if (button === GamepadButton.SECONDARY) {
+				reorderActive.current = !reorderActive.current
+				return
+			}
+			if (button === GamepadButton.CANCEL) {
+				reorderActive.current = false
+				return
+			}
+			if (
+				!reorderActive.current ||
+				(button !== GamepadButton.DIR_UP &&
+					button !== GamepadButton.DIR_DOWN)
+			) {
+				return
+			}
+
+			const boundarySource =
+				button === GamepadButton.DIR_UP
+					? pinnedSources[0]
+					: pinnedSources[pinnedSources.length - 1]
+			const focusTarget = boundarySource
+				? focusTargets.current.get(boundarySource.id)
+				: undefined
+			if (
+				!focusTarget ||
+				!event.target ||
+				!focusTarget.contains(event.target as Node)
+			) {
+				return
+			}
+
+			event.preventDefault()
+			event.stopPropagation()
+			focusTarget.querySelector<HTMLElement>('[role="checkbox"]')?.focus()
+		}
+
+		root.addEventListener("vgp_onbuttondown", keepBoundaryFocus, true)
+		return () =>
+			root.removeEventListener("vgp_onbuttondown", keepBoundaryFocus, true)
+	}, [pinnedSources])
+
+	useEffect(() => {
+		if (saving) reorderActive.current = false
+	}, [saving])
+
 	const saveOrder = (entries: ReorderableEntry<string>[]) => {
+		const orderedSourceIds = entries.flatMap((entry) =>
+			entry.data ? [entry.data] : []
+		)
+		const ownerDocument =
+			focusTargets.current.values().next().value?.ownerDocument
+		const activeElement = ownerDocument?.activeElement
+		const focusedSourceId = orderedSourceIds.find((sourceId) => {
+			const target = focusTargets.current.get(sourceId)
+			return (
+				Boolean(activeElement && target?.contains(activeElement)) ||
+				Boolean(target?.querySelector(".gpfocus"))
+			)
+		})
+		pendingFocusSourceId.current = focusAfterReorderSave(
+			orderedSourceIds,
+			focusedSourceId
+		)
+
 		void store.update((currentSettings) => ({
 			...currentSettings,
 			pinnedSourceIds: reconcilePinnedSourceOrder(
 				currentSettings.pinnedSourceIds,
-				entries.flatMap((entry) => (entry.data ? [entry.data] : []))
+				orderedSourceIds
 			),
 		}))
 	}
@@ -142,12 +216,14 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 				</PanelSectionRow>
 				{pinnedSources.length > 0 ? (
 					<PanelSectionRow>
-						<ReorderableList
-							disableReordering={!loaded || saving}
-							entries={reorderEntries}
-							interactables={PinnedToggle}
-							onSave={saveOrder}
-						/>
+						<div ref={reorderListRoot} style={{ width: "100%" }}>
+							<ReorderableList
+								disableReordering={!loaded || saving}
+								entries={reorderEntries}
+								interactables={PinnedToggle}
+								onSave={saveOrder}
+							/>
+						</div>
 					</PanelSectionRow>
 				) : (
 					<PanelSectionRow>

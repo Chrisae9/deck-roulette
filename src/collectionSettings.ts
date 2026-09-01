@@ -89,3 +89,11 @@ export const focusAfterItemRemoval = (itemIds: string[], removedId: string) => {
 
 	return itemIds[removedIndex + 1] ?? itemIds[removedIndex - 1] ?? removedId
 }
+
+export const focusAfterReorderSave = (
+	orderedIds: string[],
+	focusedId?: string
+) =>
+	focusedId && orderedIds.includes(focusedId)
+		? focusedId
+		: orderedIds[0]
