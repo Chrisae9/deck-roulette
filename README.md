@@ -13,8 +13,6 @@ collections.
 - Exclude collections from Locally Installed Games and My Games while keeping
   them available as individual roulette lists.
 
-![DeckRoulette shortcut, reorder, browse, and exclusion views](screenshots/005_features.png)
-
 ## Development
 
 ```sh
