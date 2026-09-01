@@ -1,6 +1,8 @@
 import {
 	ButtonItem,
+	Focusable,
 	Navigation,
+	NavEntryPositionPreferences,
 	PanelSection,
 	PanelSectionRow,
 } from "@decky/ui"
@@ -19,10 +21,15 @@ type QuickAccessProps = {
 	store: SettingsStore
 }
 
+let quickAccessView: "shortcuts" | "other-lists" = "shortcuts"
+let lastSelectedOtherSourceId: string | undefined
+
 export const QuickAccess = ({ store }: QuickAccessProps) => {
 	const { collectionStore }: { collectionStore?: CollectionStore } = window as any
 	const { settings, loaded, saving, error } = useSettingsStore(store)
-	const [browsingOtherLists, setBrowsingOtherLists] = useState(false)
+	const [browsingOtherLists, setBrowsingOtherLists] = useState(
+		quickAccessView === "other-lists"
+	)
 	const collections = selectableCollections(collectionStore)
 	const availableSources = availableRouletteSources(
 		collectionStore,
@@ -41,35 +48,47 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 		Navigation.Navigate(`${SETTINGS_ROUTE}/shortcuts`)
 		Navigation.CloseSideMenus()
 	}
-	const openRandomGame = (appIds: number[]) => {
+	const showOtherLists = () => {
+		quickAccessView = "other-lists"
+		setBrowsingOtherLists(true)
+	}
+	const showShortcuts = () => {
+		quickAccessView = "shortcuts"
+		setBrowsingOtherLists(false)
+	}
+	const openRandomGame = (sourceId: string, appIds: number[]) => {
+		if (browsingOtherLists) lastSelectedOtherSourceId = sourceId
 		navigateToRandomGame(appIds)
 	}
 
 	if (browsingOtherLists) {
 		return (
-			<div>
+			<Focusable
+				navEntryPreferPosition={NavEntryPositionPreferences.PREFERRED_CHILD}
+			>
 				<PanelSection title="Other Game Lists">
 					<PanelSectionRow>
-						<ButtonItem
-							layout="below"
-							onClick={() => setBrowsingOtherLists(false)}
-						>
+						<ButtonItem layout="below" onClick={showShortcuts}>
 							← Back to Shortcuts
 						</ButtonItem>
 					</PanelSectionRow>
 					{otherSources.map((source) => (
 						<PanelSectionRow key={source.id}>
 							<ButtonItem
+								{...({
+									preferredFocus:
+										source.id === lastSelectedOtherSourceId,
+								} as any)}
 								layout="below"
 								disabled={source.appIds.length === 0}
-								onClick={() => openRandomGame(source.appIds)}
+								onClick={() => openRandomGame(source.id, source.appIds)}
 							>
 								{source.label} ({source.appIds.length})
 							</ButtonItem>
 						</PanelSectionRow>
 					))}
 				</PanelSection>
-			</div>
+			</Focusable>
 		)
 	}
 
@@ -86,7 +105,7 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 									? "No eligible games in this list."
 									: undefined
 							}
-							onClick={() => openRandomGame(source.appIds)}
+							onClick={() => openRandomGame(source.id, source.appIds)}
 						>
 							{source.label} ({source.appIds.length})
 						</ButtonItem>
@@ -98,7 +117,7 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 							layout="below"
 							disabled={!loaded}
 							description={`${otherSources.length} unpinned lists`}
-							onClick={() => setBrowsingOtherLists(true)}
+							onClick={showOtherLists}
 						>
 							Browse Other Lists…
 						</ButtonItem>
