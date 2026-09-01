@@ -46,10 +46,10 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 	const { settings, loaded, saving, error } = useSettingsStore(store)
 	const focusTargets = useRef(new Map<string, HTMLDivElement>())
 	const pendingFocusSourceId = useRef<string | undefined>(undefined)
+	const shortcutPageRoot = useRef<HTMLDivElement>(null)
 	const reorderListRoot = useRef<HTMLDivElement>(null)
 	const reorderActiveRef = useRef(false)
 	const [reorderSourceId, setReorderSourceId] = useState<string | undefined>()
-	const reorderSavePending = useRef(false)
 	const availableSources = availableRouletteSources(
 		collectionStore,
 		settings.excludedCollectionIds
@@ -59,8 +59,8 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 			availableSources,
 			settings.pinnedSourceIds
 		)
-	const shortcutState = useRef({ loaded, saving, pinnedSources })
-	shortcutState.current = { loaded, saving, pinnedSources }
+	const shortcutState = useRef({ loaded, pinnedSources })
+	shortcutState.current = { loaded, pinnedSources }
 	const reorderEntries: ReorderableEntry<string>[] = pinnedSources.map(
 		(source, position) => ({
 			label: (
@@ -115,6 +115,64 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 
 		return () => ownerWindow.clearTimeout(timeout)
 	}, [saving, settings.pinnedSourceIds])
+
+	useEffect(() => {
+		const root = shortcutPageRoot.current
+		if (!root) return
+
+		const keepVisibleListOrder = (event: Event) => {
+			const button = (event as CustomEvent<{ button?: GamepadButton }>).detail
+				?.button
+			if (
+				reorderActiveRef.current ||
+				(button !== GamepadButton.DIR_UP &&
+					button !== GamepadButton.DIR_DOWN)
+			) {
+				return
+			}
+
+			const renderedPinnedCheckboxes = Array.from(
+				reorderListRoot.current?.querySelectorAll<HTMLElement>(
+					'[role="checkbox"][aria-checked="true"]'
+				) ?? []
+			)
+			const firstAvailableTarget = availableShortcuts[0]
+				? focusTargets.current.get(availableShortcuts[0].id)
+				: undefined
+			const firstAvailableCheckbox =
+				firstAvailableTarget?.querySelector<HTMLElement>('[role="checkbox"]')
+			const lastPinnedCheckbox =
+				renderedPinnedCheckboxes[renderedPinnedCheckboxes.length - 1]
+			const eventTarget = event.target as Node | null
+			const movingUpFromAvailable = Boolean(
+				button === GamepadButton.DIR_UP &&
+					eventTarget &&
+					firstAvailableTarget?.contains(eventTarget)
+			)
+			const movingDownFromPinned = Boolean(
+				button === GamepadButton.DIR_DOWN &&
+					eventTarget &&
+					lastPinnedCheckbox &&
+					(eventTarget === lastPinnedCheckbox ||
+						lastPinnedCheckbox.contains(eventTarget))
+			)
+
+			const nextCheckbox = movingUpFromAvailable
+				? lastPinnedCheckbox
+				: movingDownFromPinned
+					? firstAvailableCheckbox
+					: undefined
+			if (!nextCheckbox) return
+
+			event.preventDefault()
+			event.stopPropagation()
+			nextCheckbox.focus()
+		}
+
+		root.addEventListener("vgp_onbuttondown", keepVisibleListOrder, true)
+		return () =>
+			root.removeEventListener("vgp_onbuttondown", keepVisibleListOrder, true)
+	}, [availableShortcuts, pinnedSources])
 
 	useEffect(() => {
 		const root = reorderListRoot.current
@@ -182,7 +240,6 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 			reorderActiveRef.current = false
 			setReorderSourceId(undefined)
 		}
-		else reorderSavePending.current = false
 	}, [saving])
 
 	const saveOrder = (entries: ReorderableEntry<string>[]) => {
@@ -203,8 +260,6 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 			orderedSourceIds,
 			focusedSourceId
 		)
-		reorderSavePending.current = true
-
 		void store.update((currentSettings) => ({
 			...currentSettings,
 			pinnedSourceIds: reconcilePinnedSourceOrder(
@@ -216,7 +271,7 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 	const PinnedToggle = useMemo(
 		() =>
 			({ entry }: { entry: ReorderableEntry<string> }) => {
-				const { loaded, saving, pinnedSources } = shortcutState.current
+				const { loaded, pinnedSources } = shortcutState.current
 				return (
 					<div
 						ref={entry.data ? registerFocusTarget(entry.data) : undefined}
@@ -224,11 +279,7 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 					>
 						<Toggle
 							value
-							disabled={
-								!loaded ||
-								(saving && !reorderSavePending.current) ||
-								!entry.data
-							}
+							disabled={!loaded || !entry.data}
 							onChange={(pinned) => {
 								if (!entry.data) return
 								rememberAdjacentFocus(
@@ -247,7 +298,7 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 	)
 
 	return (
-		<div>
+		<div ref={shortcutPageRoot}>
 			<PanelSection title="Pinned Shortcuts">
 				<ErrorRow error={error} />
 				<PanelSectionRow>
@@ -284,7 +335,7 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 								<ToggleField
 									label={source.label}
 									checked={false}
-									disabled={!loaded || saving}
+									disabled={!loaded}
 									onChange={(pinned) => {
 										rememberAdjacentFocus(
 											availableShortcuts.map(({ id }) => id),
@@ -357,7 +408,7 @@ const ExclusionSettings = ({ store }: SettingsPageProps) => {
 							checked={settings.excludedCollectionIds.includes(
 								collection.id
 							)}
-							disabled={!loaded || saving}
+							disabled={!loaded}
 							onChange={(excluded) =>
 								void store.update((currentSettings) =>
 									setCollectionExcluded(

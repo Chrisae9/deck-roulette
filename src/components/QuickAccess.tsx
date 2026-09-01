@@ -103,7 +103,7 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 	}, [browsingOtherLists, preferredMainFocusId, preferredOtherFocusId])
 
 	const openSettings = () => {
-		lastMainFocusId = SETTINGS_FOCUS_ID
+		lastMainFocusId = undefined
 		Navigation.Navigate(`${SETTINGS_ROUTE}/shortcuts`)
 		Navigation.CloseSideMenus()
 	}
