@@ -69,7 +69,7 @@ export const availableRouletteSources = (
 		{
 			id: MY_GAMES_SOURCE_ID,
 			kind: "my-games",
-			label: myGames?.displayName ?? "My Games",
+			label: "My Games",
 			appIds: appIdsWithoutExcludedCollections(
 				(myGames?.visibleApps ?? []).map((app) => app.appid),
 				allCollections,

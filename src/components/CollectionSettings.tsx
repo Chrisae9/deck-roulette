@@ -48,7 +48,7 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 	const pendingFocusSourceId = useRef<string | undefined>(undefined)
 	const reorderListRoot = useRef<HTMLDivElement>(null)
 	const reorderActiveRef = useRef(false)
-	const [reorderActive, setReorderActive] = useState(false)
+	const [reorderSourceId, setReorderSourceId] = useState<string | undefined>()
 	const reorderSavePending = useRef(false)
 	const availableSources = availableRouletteSources(
 		collectionStore,
@@ -65,7 +65,9 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 		(source, position) => ({
 			label: (
 				<span style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-					{reorderActive ? <FaArrowsAltV aria-hidden /> : null}
+					{reorderSourceId === source.id ? (
+						<FaArrowsAltV aria-hidden />
+					) : null}
 					{source.label}
 				</span>
 			),
@@ -124,12 +126,19 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 			if (button === GamepadButton.SECONDARY) {
 				const active = !reorderActiveRef.current
 				reorderActiveRef.current = active
-				setReorderActive(active)
+				const selectedSourceId = pinnedSources.find((source) => {
+					const target = focusTargets.current.get(source.id)
+					return (
+						Boolean(event.target && target?.contains(event.target as Node)) ||
+						Boolean(target?.querySelector(".gpfocus"))
+					)
+				})?.id
+				setReorderSourceId(active ? selectedSourceId : undefined)
 				return
 			}
 			if (button === GamepadButton.CANCEL) {
 				reorderActiveRef.current = false
-				setReorderActive(false)
+				setReorderSourceId(undefined)
 				return
 			}
 			if (
@@ -168,7 +177,7 @@ const ShortcutSettings = ({ store }: SettingsPageProps) => {
 	useEffect(() => {
 		if (saving) {
 			reorderActiveRef.current = false
-			setReorderActive(false)
+			setReorderSourceId(undefined)
 		}
 		else reorderSavePending.current = false
 	}, [saving])

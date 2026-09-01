@@ -79,6 +79,13 @@ describe("roulette game pools", () => {
 		expect(sources[1].appIds).toEqual([1, 2, 3, 4])
 	})
 
+	test("normalizes Steam's My games label", () => {
+		const store = collectionStore([])
+		store.myGamesCollection!.displayName = "My games"
+
+		expect(availableRouletteSources(store, [])[1].label).toBe("My Games")
+	})
+
 	test("exclusions affect broad pools but not direct collection roulette", () => {
 		const sources = availableRouletteSources(
 			collectionStore([collection("emulation", "Emulation", [2, 3])]),
