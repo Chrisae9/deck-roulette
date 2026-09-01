@@ -6,7 +6,7 @@ import {
 	PanelSection,
 	PanelSectionRow,
 } from "@decky/ui"
-import { useEffect, useState } from "react"
+import { ReactNode, RefObject, useEffect, useRef, useState } from "react"
 
 import {
 	availableRouletteSources,
@@ -28,6 +28,18 @@ type QuickAccessProps = {
 	store: SettingsStore
 }
 
+type FocusTargetProps = {
+	children: ReactNode
+	focusRef: RefObject<HTMLDivElement | null>
+	preferred: boolean
+}
+
+const FocusTarget = ({ children, focusRef, preferred }: FocusTargetProps) => (
+	<div ref={preferred ? focusRef : undefined} style={{ width: "100%" }}>
+		{children}
+	</div>
+)
+
 let quickAccessView: "shortcuts" | "other-lists" = "shortcuts"
 let lastSelectedOtherSourceId: string | undefined
 let lastMainFocusId: string | undefined
@@ -38,6 +50,7 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 	const [browsingOtherLists, setBrowsingOtherLists] = useState(
 		quickAccessView === "other-lists"
 	)
+	const preferredFocusTarget = useRef<HTMLDivElement>(null)
 	const collections = selectableCollections(collectionStore)
 	const availableSources = availableRouletteSources(
 		collectionStore,
@@ -63,10 +76,8 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 
 	useEffect(() => {
 		const focusPreferredButton = () => {
-			document
-				.querySelector<HTMLElement>(
-					'[data-deck-roulette-preferred="true"]'
-				)
+			preferredFocusTarget.current
+				?.querySelector<HTMLElement>(".Focusable, button, [tabindex]")
 				?.focus()
 		}
 		const timeout = window.setTimeout(focusPreferredButton, 100)
@@ -106,38 +117,44 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 			>
 				<PanelSection title="Other Game Lists">
 					<PanelSectionRow>
-						<ButtonItem
-							{...({
-								"data-deck-roulette-preferred":
-									preferredOtherFocusId === OTHER_LISTS_BACK_FOCUS_ID
-										? "true"
-										: undefined,
-								preferredFocus:
-									preferredOtherFocusId === OTHER_LISTS_BACK_FOCUS_ID,
-							} as any)}
-							layout="below"
-							onClick={showShortcuts}
+						<FocusTarget
+							focusRef={preferredFocusTarget}
+							preferred={
+								preferredOtherFocusId === OTHER_LISTS_BACK_FOCUS_ID
+							}
 						>
-							← Back to Shortcuts
-						</ButtonItem>
+							<ButtonItem
+								{...({
+									preferredFocus:
+										preferredOtherFocusId === OTHER_LISTS_BACK_FOCUS_ID,
+								} as any)}
+								layout="below"
+								onClick={showShortcuts}
+							>
+								← Back to Shortcuts
+							</ButtonItem>
+						</FocusTarget>
 					</PanelSectionRow>
 					{otherSources.map((source) => (
 						<PanelSectionRow key={source.id}>
-							<ButtonItem
-								{...({
-									"data-deck-roulette-preferred":
-										source.id === preferredOtherFocusId
-											? "true"
-											: undefined,
-									preferredFocus:
-										source.id === preferredOtherFocusId,
-								} as any)}
-								layout="below"
-								disabled={source.appIds.length === 0}
-								onClick={() => openRandomGame(source.id, source.appIds)}
+							<FocusTarget
+								focusRef={preferredFocusTarget}
+								preferred={source.id === preferredOtherFocusId}
 							>
-								{source.label} ({source.appIds.length})
-							</ButtonItem>
+								<ButtonItem
+									{...({
+										preferredFocus:
+											source.id === preferredOtherFocusId,
+									} as any)}
+									layout="below"
+									disabled={source.appIds.length === 0}
+									onClick={() =>
+										openRandomGame(source.id, source.appIds)
+									}
+								>
+									{source.label} ({source.appIds.length})
+								</ButtonItem>
+							</FocusTarget>
 						</PanelSectionRow>
 					))}
 				</PanelSection>
@@ -153,45 +170,47 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 			<PanelSection title="Random Game">
 				{pinnedSources.map((source) => (
 					<PanelSectionRow key={source.id}>
-						<ButtonItem
-							{...({
-								"data-deck-roulette-preferred":
-									source.id === preferredMainFocusId
-										? "true"
-										: undefined,
-								preferredFocus: source.id === preferredMainFocusId,
-							} as any)}
-							layout="below"
-							disabled={!loaded || source.appIds.length === 0}
-							description={
-								loaded && source.appIds.length === 0
-									? "No eligible games in this list."
-									: undefined
-							}
-							onClick={() => openRandomGame(source.id, source.appIds)}
+						<FocusTarget
+							focusRef={preferredFocusTarget}
+							preferred={source.id === preferredMainFocusId}
 						>
-							{source.label} ({source.appIds.length})
-						</ButtonItem>
+							<ButtonItem
+								{...({
+									preferredFocus: source.id === preferredMainFocusId,
+								} as any)}
+								layout="below"
+								disabled={!loaded || source.appIds.length === 0}
+								description={
+									loaded && source.appIds.length === 0
+										? "No eligible games in this list."
+										: undefined
+								}
+								onClick={() => openRandomGame(source.id, source.appIds)}
+							>
+								{source.label} ({source.appIds.length})
+							</ButtonItem>
+						</FocusTarget>
 					</PanelSectionRow>
 				))}
 				{otherSources.length > 0 ? (
 					<PanelSectionRow>
-						<ButtonItem
-							{...({
-								"data-deck-roulette-preferred":
-									preferredMainFocusId === BROWSE_FOCUS_ID
-										? "true"
-										: undefined,
-								preferredFocus:
-									preferredMainFocusId === BROWSE_FOCUS_ID,
-							} as any)}
-							layout="below"
-							disabled={!loaded}
-							description={`${otherSources.length} unpinned lists`}
-							onClick={showOtherLists}
+						<FocusTarget
+							focusRef={preferredFocusTarget}
+							preferred={preferredMainFocusId === BROWSE_FOCUS_ID}
 						>
-							Browse Other Lists…
-						</ButtonItem>
+							<ButtonItem
+								{...({
+									preferredFocus:
+										preferredMainFocusId === BROWSE_FOCUS_ID,
+								} as any)}
+								layout="below"
+								disabled={!loaded}
+								description={`${otherSources.length} unpinned lists`}
+								onClick={showOtherLists}
+							>
+								Browse Other Lists…
+							</ButtonItem>
+						</FocusTarget>
 					</PanelSectionRow>
 				) : null}
 			</PanelSection>
@@ -202,21 +221,23 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 					</PanelSectionRow>
 				) : null}
 				<PanelSectionRow>
-					<ButtonItem
-						{...({
-							"data-deck-roulette-preferred":
-								preferredMainFocusId === SETTINGS_FOCUS_ID
-									? "true"
-									: undefined,
-							preferredFocus: preferredMainFocusId === SETTINGS_FOCUS_ID,
-						} as any)}
-						layout="below"
-						disabled={saving}
-						description={`${pinnedSources.length} pinned · ${excludedCount} excluded`}
-						onClick={openSettings}
+					<FocusTarget
+						focusRef={preferredFocusTarget}
+						preferred={preferredMainFocusId === SETTINGS_FOCUS_ID}
 					>
-						Customize Shortcuts
-					</ButtonItem>
+						<ButtonItem
+							{...({
+								preferredFocus:
+									preferredMainFocusId === SETTINGS_FOCUS_ID,
+							} as any)}
+							layout="below"
+							disabled={saving}
+							description={`${pinnedSources.length} pinned · ${excludedCount} excluded`}
+							onClick={openSettings}
+						>
+							Customize Shortcuts
+						</ButtonItem>
+					</FocusTarget>
 				</PanelSectionRow>
 			</PanelSection>
 		</Focusable>
