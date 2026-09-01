@@ -50,6 +50,7 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 	const [browsingOtherLists, setBrowsingOtherLists] = useState(
 		quickAccessView === "other-lists"
 	)
+	const panelRoot = useRef<HTMLDivElement>(null)
 	const preferredFocusTarget = useRef<HTMLDivElement>(null)
 	const collections = selectableCollections(collectionStore)
 	const availableSources = availableRouletteSources(
@@ -75,14 +76,31 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 	)
 
 	useEffect(() => {
-		const focusPreferredButton = () => {
-			preferredFocusTarget.current
-				?.querySelector<HTMLElement>(".Focusable, button, [tabindex]")
-				?.focus()
-		}
-		const timeout = window.setTimeout(focusPreferredButton, 100)
+		const root = panelRoot.current
+		const ownerWindow = root?.ownerDocument.defaultView
+		if (!root || !ownerWindow) return
 
-		return () => window.clearTimeout(timeout)
+		let timeout: number | undefined
+		const focusPreferredButton = () => {
+			if (timeout !== undefined) ownerWindow.clearTimeout(timeout)
+			timeout = ownerWindow.setTimeout(() => {
+				preferredFocusTarget.current
+					?.querySelector<HTMLElement>(".Focusable, button, [tabindex]")
+					?.focus()
+			}, 50)
+		}
+		const observer = new ownerWindow.IntersectionObserver((entries) => {
+			if (entries.some(({ isIntersecting }) => isIntersecting)) {
+				focusPreferredButton()
+			}
+		})
+		observer.observe(root)
+		if (root.getClientRects().length > 0) focusPreferredButton()
+
+		return () => {
+			observer.disconnect()
+			if (timeout !== undefined) ownerWindow.clearTimeout(timeout)
+		}
 	}, [browsingOtherLists, preferredMainFocusId, preferredOtherFocusId])
 
 	const openSettings = () => {
@@ -111,11 +129,12 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 
 	if (browsingOtherLists) {
 		return (
-			<Focusable
-				key="other-lists"
-				navEntryPreferPosition={NavEntryPositionPreferences.PREFERRED_CHILD}
-			>
-				<PanelSection title="Other Game Lists">
+			<div ref={panelRoot}>
+				<Focusable
+					key="other-lists"
+					navEntryPreferPosition={NavEntryPositionPreferences.PREFERRED_CHILD}
+				>
+					<PanelSection title="Other Game Lists">
 					<PanelSectionRow>
 						<FocusTarget
 							focusRef={preferredFocusTarget}
@@ -157,17 +176,19 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 							</FocusTarget>
 						</PanelSectionRow>
 					))}
-				</PanelSection>
-			</Focusable>
+					</PanelSection>
+				</Focusable>
+			</div>
 		)
 	}
 
 	return (
-		<Focusable
-			key="shortcuts"
-			navEntryPreferPosition={NavEntryPositionPreferences.PREFERRED_CHILD}
-		>
-			<PanelSection title="Random Game">
+		<div ref={panelRoot}>
+			<Focusable
+				key="shortcuts"
+				navEntryPreferPosition={NavEntryPositionPreferences.PREFERRED_CHILD}
+			>
+				<PanelSection title="Random Game">
 				{pinnedSources.map((source) => (
 					<PanelSectionRow key={source.id}>
 						<FocusTarget
@@ -213,8 +234,8 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 						</FocusTarget>
 					</PanelSectionRow>
 				) : null}
-			</PanelSection>
-			<PanelSection title="Settings">
+				</PanelSection>
+				<PanelSection title="Settings">
 				{error ? (
 					<PanelSectionRow>
 						<div>{error}</div>
@@ -239,7 +260,8 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 						</ButtonItem>
 					</FocusTarget>
 				</PanelSectionRow>
-			</PanelSection>
-		</Focusable>
+				</PanelSection>
+			</Focusable>
+		</div>
 	)
 }
