@@ -84,9 +84,8 @@ export const QuickAccess = ({ store }: QuickAccessProps) => {
 		const focusPreferredButton = () => {
 			if (timeout !== undefined) ownerWindow.clearTimeout(timeout)
 			timeout = ownerWindow.setTimeout(() => {
-				preferredFocusTarget.current
-					?.querySelector<HTMLElement>(".Focusable, button, [tabindex]")
-					?.focus()
+				const target = preferredFocusTarget.current
+				target?.querySelector<HTMLElement>("button")?.focus()
 			}, 50)
 		}
 		const observer = new ownerWindow.IntersectionObserver((entries) => {
